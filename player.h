@@ -16,7 +16,6 @@ class player : public character
 {
 public:
     player();
-    static const char * rutaPng;
     void atackLevel1();
     void atackLevel2(silbon & jefe, tureco & perro); //se basa en mira_hacia y busca a entidades en ese espacio por lo que necesita acceder a datos de wavemanager
     void roll(); //obtiene invulnerabilidad por un momento y se mueve mas rapido por un momento en la direccion de mira_hacia
@@ -40,6 +39,7 @@ private:
     qreal rollRemaining;
     qreal parryRemaining; //seria bueno poner que solo se use la primera mitad del tiempo y la segunda sea coldown
     short alcoholInBlood;
+    qreal parryTime;
 
 };
 

@@ -1,20 +1,38 @@
 #include "phantom.h"
+#include <cmath>
 
-phantom::phantom(qreal posPhantomX, qreal posPhantomY){}
+namespace {
+const qreal phantomHalfWidth = 40.0; //esto de aca toca moverlo segun el gameplay
+const qreal phantomHalfHeight = 50.0;
+const qreal playerHalfWidth = 40.0;
+const qreal playerHalfHeight = 50.0;
+}
+
+phantom::phantom(qreal posPhantomX, qreal posPhantomY)
+{
+    pos_x = posPhantomX;
+    pos_y = posPhantomY;
+}
 
 void phantom::persecutePlayer(player& jugador, qreal segundos)
 {
-    qreal dx = jugador.getPos_x() - pos_x;
-    qreal dy = jugador.getPos_y() - pos_y;
+    if (segundos <= 0)
+        return;
 
-    // cuando ya este en la misma posicion hay que hacer que haga daño y se inactive para no construir
-    // otro objeto en la siguiente oleada si no que usar el mismo
-    if (dx == 0 && dy == 0) // <--- posiblemente esto haya que cambiarlo a un area de contacto
-        if(jugador.getRollRemaining() <= 0){
-            this->makeDamage(jugador);
-            this->active = false;
-        }
-    return ;
+    const qreal dx = jugador.getPos_x() - pos_x;
+    const qreal dy = jugador.getPos_y() - pos_y;
 
-    mover(dx, dy, segundos);// ya esto normaliza y solo saca la direccion dle movimiento
+    // Las posiciones son el centro de cada personaje.
+    const bool tocaJugador =
+        std::abs(dx) <= phantomHalfWidth + playerHalfWidth &&
+        std::abs(dy) <= phantomHalfHeight + playerHalfHeight;
+
+    if (tocaJugador && jugador.getRollRemaining() <= 0) {
+        makeDamage(jugador);
+        active = false;
+        return;
+    }
+
+    // Si el jugador está rodando, no recibe daño y el phantom sigue persiguiéndolo.
+    mover(dx, dy, segundos);
 }

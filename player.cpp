@@ -31,6 +31,7 @@ void player::FindToDamage(qreal topLeftCornerX,qreal topLeftCornerY, qreal botto
                           std::vector<phantom *>enemigos_phantom, std::vector<doppelganger *>enemigos_doppel, char lookTO){
     char direccion_daño = this->getMiraHacia();
     if(direccion_daño == 'w' && direccion_daño == 'a' && direccion_daño == 's' && direccion_daño == 'd'){
+        // aqui aun no reconoce el daño al moverse y mirar en diagonal
         for(auto enemigo :  enemigos_phantom){
             qreal enemyX = enemigo->getPos_x();
             qreal enemyY = enemigo->getPos_y();
@@ -39,6 +40,7 @@ void player::FindToDamage(qreal topLeftCornerX,qreal topLeftCornerY, qreal botto
                 this->makeDamage(*enemigo);
             }
         }
+        /*
         for(auto enemigo :  enemigos_doppel){
             qreal enemyX = enemigo->getPos_x();
             qreal enemyY = enemigo->getPos_y();
@@ -52,6 +54,7 @@ void player::FindToDamage(qreal topLeftCornerX,qreal topLeftCornerY, qreal botto
                 }
             }
         }
+        */
     }
     else{
 

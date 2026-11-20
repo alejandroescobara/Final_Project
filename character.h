@@ -6,12 +6,17 @@ class character
 {
 protected:
     qreal live_points;
-    qreal velocity;// esta en pixeles por segundo
-    char mira_hacia; //w arriba, a izquierda, s abajo, d Derecha, q diagonal wa, e diagonal wd, x diagonal sd, z diagonal as, se cambia al mover
-    qreal pos_x;
-    qreal pos_y;
+    char mira_hacia;//w arriba, a izquierda, s abajo, d Derecha, q diagonal wa, e diagonal wd, x diagonal sd, z diagonal as, se cambia al mover
+    qreal pos_x; // posición en X, en píxeles
+    qreal pos_y; // posición en Y, en píxeles
     qreal AtackDamage;
     bool active;
+    qreal weight;
+    qreal vx;       // velocidad actual en X, píxeles/s
+    qreal vy;       // velocidad actual en Y, píxeles/s
+    qreal maxSpeed; // rapidez máxima, píxeles/s
+    qreal friction;
+
 
 public:
     character();
@@ -34,6 +39,8 @@ public:
     qreal getPos_x();
     void setPos_y(qreal y);
     void setPos_x(qreal x);
+
+    qreal getWeight() const;
 
 };
 
