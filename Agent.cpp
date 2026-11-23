@@ -1,0 +1,180 @@
+#include "Agent.h"
+
+static double normalizeAngle(double angle) {
+    while (angle > 180.0)  angle -= 360.0;
+    while (angle < -180.0) angle += 360.0;
+    return angle;
+}
+
+Agent::Agent()
+    : markov(),
+      qAgent(0.1, 0.9, 0.15), // alpha = 0.1, gamma = 0.9, epsilon = 0.15
+      lastState{},
+      lastAction(doppelAction::PARRY),
+      hasPreviousState(false) {}
+
+playerContext Agent::buildPlayerContext(const egocentricPerception& perception) const {
+
+  playerContext context;
+  context.threatDistance = distanceSector::FAR;
+  context.threatAngle    = angleSector::FRONT;
+  context.isSurrounded   = false;
+  context.lastAction     = playerAction::INACTIVE;
+
+  bool playerIsVisible = false;
+  double minDistanceToPlayer = 999999.0;
+  size_t nearbyThreatsCount = 0;
+
+  for (const auto& entity : perception.visibleEntityArray) {
+    if (entity.type == entityType::PLAYER) {
+      playerIsVisible = true;
+      context.lastAction = perception.lastPlayerAction;
+
+      minDistanceToPlayer    = entity.distance;
+      context.threatDistance = entity.getPlayerDistanceSector(); // Posición de este Doppel según Otoniel
+      context.threatAngle    = entity.getPlayerAngleSector();    // Ángulo de este Doppel según Otoniel
+
+      if (entity.getPlayerDistanceSector() != distanceSector::FAR) {
+          nearbyThreatsCount++;
+      }
+      break;
+    }
+  }
+
+  if (!playerIsVisible) {
+      return context;
+  }
+
+  for (const auto& entity : perception.visibleEntityArray) {
+    if (entity.type != entityType::PLAYER) {
+
+      if (entity.getPlayerDistanceSector() != distanceSector::FAR) {
+        nearbyThreatsCount++;
+      }
+
+      if (entity.distanceToPlayer < minDistanceToPlayer) {
+        minDistanceToPlayer    = entity.distanceToPlayer;
+        context.threatDistance = entity.getPlayerDistanceSector();
+        context.threatAngle    = entity.getPlayerAngleSector();
+      }
+    }
+  }
+
+  context.isSurrounded = (nearbyThreatsCount > 1);
+  return context;
+}
+
+egocentricState Agent::buildEgocentricState(const egocentricPerception& perception, 
+                                           playerAction predictedAction) const {
+  egocentricState state;
+  state.playerDistance        = distanceSector::FAR;
+  state.playerAngle           = angleSector::FRONT;
+  state.allyNearby            = false;
+  state.predictedPlayerAction = predictedAction;
+
+  for (const auto& entity : perception.visibleEntityArray) {
+    if (entity.type == entityType::PLAYER) {
+      state.playerDistance = entity.getDistanceSector();
+      state.playerAngle    = entity.getAngleSector();
+    } 
+    else if (entity.type == entityType::DOPPELGANGER) {
+      if (entity.getDistanceSector() != distanceSector::FAR) {
+        state.allyNearby = true;
+      }
+    }
+  }
+
+  return state;
+}
+
+doppelAngledAction Agent::calculateAngledAction(doppelAction action, 
+                                               const egocentricPerception& perception) const {
+
+  double targetAngle = 0.0;
+  for (const auto& entity : perception.visibleEntityArray) {
+    if (entity.type == entityType::PLAYER) {
+      targetAngle = entity.angle;
+      break;
+    }
+  }
+
+  double finalAngle = targetAngle;
+
+  switch (action) {
+    case doppelAction::MOVE_FORWARD:
+    case doppelAction::ROLL_FORWARD:
+    case doppelAction::ATTACK:
+    case doppelAction::PARRY:
+      finalAngle = targetAngle;
+      break;
+
+    case doppelAction::MOVE_AWAY:
+    case doppelAction::ROLL_AWAY:
+      finalAngle = targetAngle + 180.0;
+      break;
+
+    case doppelAction::MOVE_RIGHT:
+    case doppelAction::ROLL_RIGHT:
+      finalAngle = targetAngle + 90.0;
+      break;
+
+    case doppelAction::MOVE_LEFT:
+    case doppelAction::ROLL_LEFT:
+      finalAngle = targetAngle - 90.0;
+      break;
+  }
+
+  doppelAngledAction result;
+  result.type  = action;
+  result.angle = normalizeAngle(finalAngle);
+  return result;
+}
+
+
+doppelAngledAction Agent::update(const egocentricPerception& perception) {
+  playerContext context = buildPlayerContext(perception);
+
+  if (perception.lastPlayerAction != playerAction::INACTIVE) {
+      markov.registerTransition(context, perception.lastPlayerAction);
+  }
+
+  playerAction predictedAction = markov.predictNextAction(context);
+
+  egocentricState currentState = buildEgocentricState(perception, predictedAction);
+  
+  qAgent.stepDecay();
+
+  doppelAction chosenAction    = qAgent.selectAction(currentState);
+
+  lastState        = currentState;
+  lastAction       = chosenAction;
+  hasPreviousState = true;
+
+  return calculateAngledAction(chosenAction, perception);
+}
+
+void Agent::applyReward(double reward, const egocentricPerception& newPerception) {
+    
+  if (!hasPreviousState) return;
+
+    playerContext newContext     = buildPlayerContext(newPerception);
+    playerAction predictedAction = markov.predictNextAction(newContext);
+    egocentricState newState     = buildEgocentricState(newPerception, predictedAction);
+
+    qAgent.updateQValue(lastState, lastAction, reward, newState);
+
+    lastState = newState;
+}
+
+bool Agent::saveKnowledge(std::string_view markovPath, std::string_view qTablePath) const {
+  if (!markov.saveFrequencies(markovPath)) return false;
+  if (!qAgent.saveQTable(qTablePath))      return false;
+  return true;
+}
+
+bool Agent::loadKnowledge(std::string_view markovPath, std::string_view qTablePath) {
+  if (!qAgent.loadQTable(qTablePath))      return false;
+  if (!markov.loadFrequencies(markovPath)) return false;
+  qAgent.setEpsilon(0.10);
+  return true;
+}

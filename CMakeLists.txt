@@ -6,8 +6,9 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
@@ -23,14 +24,31 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(proyecto_final_info
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
-        character.h character.cpp
-        phantom.h phantom.cpp
-        player.h player.cpp
-        doppelganger.h doppelganger.cpp
-
-        tureco.h tureco.cpp
-        silbon.h silbon.cpp
-        bone.h bone.cpp
+        Agent.h                Agent.cpp
+        AgentTypes.h
+        ArcAttack.h            ArcAttack.cpp
+        Attack.h               Attack.cpp
+        BoneAttack.h           BoneAttack.cpp
+        BoxAttack.h            BoxAttack.cpp
+        Character.h            Character.cpp
+        Doppel.h               Doppel.cpp
+        Errant.h               Errant.cpp
+        Item.h                 Item.cpp
+        LateralPhysicsMotor.h  LateralPhysicsMotor.cpp
+        LateralPlayer.h        LateralPlayer.cpp
+        MarkovPredictor.h      MarkovPredictor.cpp
+        Parry.h                Parry.cpp
+        PhysicsMotor.h         PhysicsMotor.cpp
+        PlanarPhysicsMotor.h   PlanarPhysicsMotor.cpp
+        PlanarPlayer.h         PlanarPlayer.cpp
+        Player.h               Player.cpp
+        Projectile.h           Projectile.cpp
+        ProjectileAttack.h     ProjectileAttack.cpp
+        QLearning.h            QLearning.cpp
+        Roll.h                 Roll.cpp
+        Silbon.h               Silbon.cpp
+        StatusEffect.h         StatusEffect.cpp
+        Tureco.h               Tureco.cpp
 
     )
 # Define target properties for Android with Qt 6 as:
