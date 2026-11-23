@@ -1,127 +1,118 @@
-/*
-#include "tureco.h"
-#include "silbon.h"
-#include "player.h"
+#include "Tureco.h"
+
+#include <algorithm>
 #include <cmath>
+#include <memory>
 
-tureco::tureco()
-    : state(State::Chasing),
-    playerContactLatched(false),
-    oscillationCenterX(0)
-{
-    weight = 1.0;
-    maxSpeed = 180.0;
-    friction = 5.0;
-    vx = 0;
-    vy = 0;
+#include "BoxAttack.h"
+#include "GameplayConfig.h"
+#include "LateralPhysicsMotor.h"
+#include "Player.h"
+#include "Silbon.h"
+
+Tureco::Tureco(QVector2D initialPosition)
+    : Character(initialPosition,
+                GameplayConfig::turecoHealth,
+                0.0f,
+                GameplayConfig::enemyWeight,
+                std::make_unique<LateralPhysicsMotor>(GameplayConfig::levelGroundY,
+                                                      GameplayConfig::lateralGravity,
+                                                      GameplayConfig::movementFriction),
+                Faction::Enemy) {
+  setPrimaryAttack(std::make_unique<BoxAttack>(GameplayConfig::turecoDamage,
+                                                GameplayConfig::turecoMeleeCooldown,
+                                                GameplayConfig::turecoMeleeRange,
+                                                GameplayConfig::turecoMeleeHalfWidth,
+                                                GameplayConfig::meleeKnockback));
 }
 
-void tureco::persecuteSilbon(silbon& jefe, player& jugador, qreal dt)
-{
-    if (dt <= 0)
-        return;
+void Tureco::updatePhysics(float dt) {
+  if (motionState == MotionState::Attached) {
+    setMoveVelocity(QVector2D());
+    setExternalVelocity(QVector2D());
+  }
+  Character::updatePhysics(dt);
+}
 
-    if (state != State::Chasing) {
-        runing(jefe, jugador, dt);
-        return;
+bool Tureco::kickAway(float silbonX, float playerX) {
+  if (!getIsActive() || motionState != MotionState::Attached || kickCooldown > 0.0f) return false;
+  velocityX = playerX >= silbonX ? GameplayConfig::turecoKickSpeed
+                                 : -GameplayConfig::turecoKickSpeed;
+  motionState = MotionState::Outbound;
+  playerContactLatched = false;
+  kickCooldown = GameplayConfig::turecoKickCooldown;
+  return true;
+}
+
+void Tureco::update(float dt,
+                    Silbon& silbon,
+                    Player& player,
+                    const std::vector<Character*>& targets) {
+  if (!getIsActive() || dt <= 0.0f) return;
+  if (kickCooldown > 0.0f) kickCooldown = std::max(0.0f, kickCooldown - dt);
+
+  const float oldX = getPosition().x();
+  float nextX = oldX;
+
+  if (motionState == MotionState::Attached) {
+    const float side = getPosition().x() >= silbon.getPosition().x() ? 1.0f : -1.0f;
+    nextX = silbon.getPosition().x() + side * GameplayConfig::turecoAttachedOffset;
+  } else {
+    if (motionState == MotionState::Outbound) {
+      const float drag = GameplayConfig::movementFriction * 42.0f * dt;
+      if (std::abs(velocityX) <= drag) {
+        velocityX = 0.0f;
+        motionState = MotionState::Returning;
+      } else {
+        velocityX -= std::copysign(drag, velocityX);
+      }
+    } else {
+      const float direction = silbon.getPosition().x() < oldX ? -1.0f : 1.0f;
+      velocityX += direction * GameplayConfig::turecoReturnAcceleration * dt;
     }
 
-    const qreal dx = jefe.getPos_x() - pos_x;
-    const qreal distancia = std::abs(dx);
-    const qreal distanciaFrenado =
-        friction > 0 ? std::abs(vx) / friction : 0;
-    const qreal rangoPatada = 30.0;
-
-    if (distancia <= rangoPatada + distanciaFrenado)
-        mover(0, 0, dt);
-    else
-        mover(dx, 0, dt); // Silbon y Tureco solo se mueven en X
-}
-
-void tureco::receiveKick(qreal silbonX)
-{
-    if (state != State::Chasing && state != State::Resting)
-        return;
-
-    // El punto de retorno de la trayectoria es la posición de Silbon.
-    oscillationCenterX = silbonX;
-    vx = (pos_x < silbonX ? -1.0 : 1.0) * 260.0;
-    vy = 0;
-    playerContactLatched = false;
-    state = State::Launched;
-}
-
-void tureco::runing(silbon& jefe, player& jugador, qreal dt)
-{
-    if (state == State::Resting)
-        return;
-
-    // Después del choque inelástico se desplazan juntos y se frenan.
-    if (state == State::SlidingWithSilbon) {
-        vx *= std::exp(-friction * dt);
-        const qreal dx = vx * dt;
-
-        pos_x += dx;
-        jefe.setPos_x(jefe.getPos_x() + dx);
-
-        if (std::abs(vx) < 1.0) {
-            vx = 0;
-            state = State::Resting;
-        }
-        return;
-    }
-
-    // Trayectoria oscilatoria horizontal que ya tenía Tureco.
-    const qreal oldX = pos_x;
-    const qreal spring = 40.0;
-    const qreal damping = 6.0;
-    const qreal errorX = pos_x - oscillationCenterX;
-    const qreal accelerationX =
-        (-spring * errorX - damping * vx) / weight;
-
-    vx += accelerationX * dt;
-    pos_x += vx * dt;
-    const qreal newX = pos_x;
-
-    // Hitbox horizontal: cada personaje tiene semiancho de 40 px.
-    // Se comprueba todo el tramo para no omitir el choque entre fotogramas.
-    const qreal playerContact = 80.0;
-    const qreal segmentMin = std::min(oldX, newX);
-    const qreal segmentMax = std::max(oldX, newX);
-    const qreal playerX = jugador.getPos_x();
-
-    const bool cruzaJugador =
-        segmentMin <= playerX + playerContact &&
-        segmentMax >= playerX - playerContact;
-
-    if (cruzaJugador && !playerContactLatched) {
-        if (jugador.getRollRemaining() > 0) {
-            // El roll da invulnerabilidad: no daña ni rebota.
-        } else if (jugador.getIsBloquing()) {
-            vx = -vx; // rebote elástico: misma rapidez, sentido contrario
+    nextX += velocityX * dt;
+    const float playerX = player.getPosition().x();
+    const bool crossedPlayer = std::min(oldX, nextX) <= playerX + 42.0f &&
+                               std::max(oldX, nextX) >= playerX - 42.0f;
+    if (crossedPlayer && !playerContactLatched) {
+      if (!player.isRolling()) {
+        if (player.isParrying()) {
+          const float towardTureco = getPosition().x() - playerX;
+          const float facing = player.getFacingVector().x();
+          if (facing * towardTureco > 0.0f) {
+            const float towardSilbon = silbon.getPosition().x() - oldX;
+            velocityX = (towardSilbon >= 0.0f ? 1.0f : -1.0f) * std::abs(velocityX);
+            motionState = MotionState::Returning;
+            nextX = playerX + (oldX < playerX ? -42.0f : 42.0f);
+          }
         } else {
-            makeDamage(jugador);
-            // No se modifica vx: Tureco atraviesa al jugador.
+          attack(QVector2D(playerX >= oldX ? 1.0f : -1.0f, 0.0f), targets);
         }
+      }
     }
-    playerContactLatched = cruzaJugador;
+    playerContactLatched = crossedPlayer;
 
-    // En el regreso, detecta el contacto con Silbon.
-    const qreal silbonX = jefe.getPos_x();
-    const qreal silbonContact = 80.0;
-    const bool seAcercaASilbon =
-        (silbonX - oldX) * (newX - oldX) > 0;
-    const bool cruzaSilbon =
-        segmentMin <= silbonX + silbonContact &&
-        segmentMax >= silbonX - silbonContact;
+    if (motionState == MotionState::Returning &&
+        std::abs(nextX - silbon.getPosition().x()) <= GameplayConfig::turecoAttachedOffset) {
+      const float silbonVelocityX = silbon.getMoveVelocity().x() +
+                                    silbon.getExternalVelocity().x();
+      const float totalMass = getWeight() + silbon.getWeight();
+      const float sharedVelocity = totalMass > 0.0f
+          ? (getWeight() * velocityX + silbon.getWeight() * silbonVelocityX) / totalMass
+          : 0.0f;
+      const float side = oldX >= silbon.getPosition().x() ? 1.0f : -1.0f;
+      nextX = silbon.getPosition().x() + side * GameplayConfig::turecoAttachedOffset;
 
-    if (seAcercaASilbon && cruzaSilbon) {
-        // Silbon se considera quieto antes del impacto.
-        const qreal pesoTotal = weight + jefe.getWeight();
-        if (pesoTotal > 0)
-            vx = weight * vx / pesoTotal;
+      QVector2D silbonExternalVelocity = silbon.getExternalVelocity();
+      silbonExternalVelocity.setX(sharedVelocity - silbon.getMoveVelocity().x());
+      silbon.setExternalVelocity(silbonExternalVelocity);
 
-        state = State::SlidingWithSilbon;
+      motionState = MotionState::Attached;
+      velocityX = 0.0f;
     }
+  }
+
+  setPosition(QVector2D(nextX, getPosition().y()));
+  Character::update(dt, targets);
 }
-*/

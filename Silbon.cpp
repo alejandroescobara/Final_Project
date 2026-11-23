@@ -1,92 +1,78 @@
-/*
-#include "silbon.h"
-#include "player.h"
-#include "tureco.h"
+#include "Silbon.h"
+
 #include <algorithm>
 #include <cmath>
+#include <memory>
 
-silbon::silbon()
-    : boneIsflying(false), remainingKickTureco(0), remainingboneLaunch(0)
-{}
+#include "BoneAttack.h"
+#include "BoxAttack.h"
+#include "GameplayConfig.h"
+#include "LateralPhysicsMotor.h"
+#include "Tureco.h"
 
-void silbon::atackSignal(){
-    //señal que hace el silbon (alza el saco) para qeu nosotros reaccionesmos
-    //aqui pues alzaria el costal y pondria un contador
-    gracePeriod = graceTime;
-
+Silbon::Silbon(QVector2D initialPosition, ProjectileAttack::ProjectileSpawner spawner)
+    : Character(initialPosition,
+                GameplayConfig::silbonHealth,
+                GameplayConfig::silbonMoveSpeed,
+                GameplayConfig::silbonWeight,
+                std::make_unique<LateralPhysicsMotor>(GameplayConfig::levelGroundY,
+                                                      GameplayConfig::lateralGravity,
+                                                      GameplayConfig::movementFriction),
+                Faction::Enemy),
+      boneAttack(std::make_unique<BoneAttack>(GameplayConfig::boneDamage,
+                                              GameplayConfig::boneCooldown,
+                                              GameplayConfig::boneProjectileSpeed,
+                                              GameplayConfig::boneProjectileRadius,
+                                              GameplayConfig::boneProjectileLifetime,
+                                              std::move(spawner),
+                                              GameplayConfig::boneProjectileGravity)) {
+  setPrimaryAttack(std::make_unique<BoxAttack>(GameplayConfig::silbonMeleeDamage,
+                                                GameplayConfig::silbonMeleeCooldown,
+                                                GameplayConfig::meleeRange,
+                                                GameplayConfig::enemyMeleeHalfWidth,
+                                                GameplayConfig::meleeKnockback));
 }
 
+Silbon::~Silbon() = default;
 
-void silbon::interactPlayer(player & jugador, qreal dt){
+void Silbon::update(float dt,
+                    const std::vector<Character*>& targets,
+                    QVector2D playerPosition,
+                    Tureco& tureco) {
+  if (!getIsActive() || dt <= 0.0f) return;
 
-    qreal playerX = jugador.getPos_x();
+  boneAttack->update(dt);
+  boneTimer = std::max(0.0f, boneTimer - dt);
+  kickTimer = std::max(0.0f, kickTimer - dt);
+  attachedWaitTimer = std::max(0.0f, attachedWaitTimer - dt);
+  specialAttackSpacingTimer = std::max(0.0f, specialAttackSpacingTimer - dt);
 
-    if ((pos_x < 40) && (remainingAtackPlayer <=0) ){
-        this->makeDamage(jugador);
-        remainingAtackPlayer = waitToAtack;
-        //aqui supongo la activacion de la animacion
-        //debe haber un pequeño retraso entre una señal del silbon y el ataque para que el jugador reaccione
-        //supongo estara en el metodo de actualizar
+  const bool turecoIsKicked = tureco.isKicked();
+  if (turecoWasKicked && !turecoIsKicked) {
+    attachedWaitTimer = GameplayConfig::turecoAttachedWait;
+  }
+  turecoWasKicked = turecoIsKicked;
+
+  const QVector2D difference = playerPosition - getPosition();
+  const float distance = std::abs(difference.x());
+  if (distance > GameplayConfig::meleeRange * 0.72f) {
+    move(QVector2D(difference.x() > 0.0f ? 1.0f : -1.0f, 0.0f));
+  } else {
+    move(QVector2D());
+    attack(QVector2D(difference.x() >= 0.0f ? 1.0f : -1.0f, 0.0f), targets);
+  }
+
+  if (specialAttackSpacingTimer <= 0.0f) {
+    if (boneTimer <= 0.0f && distance > 130.0f) {
+      boneAttack->execute(*this, difference, targets);
+      boneTimer = GameplayConfig::boneCooldown;
+      specialAttackSpacingTimer = GameplayConfig::specialAttackSpacing;
+    } else if (kickTimer <= 0.0f && attachedWaitTimer <= 0.0f && !tureco.isKicked() &&
+               tureco.kickAway(getPosition().x(), playerPosition.x())) {
+      kickTimer = GameplayConfig::turecoKickCooldown;
+      specialAttackSpacingTimer = GameplayConfig::specialAttackSpacing;
     }
-    else if(pos_x > 40){
-        mover(playerX,0,dt);
+  }
 
-    }
+  Character::update(dt, targets);
 }
-
-void silbon::launchBone(player &jugador)
-{
-    // Solo se permite un hueso en vuelo y se respeta el tiempo entre lanzamientos.
-    if (boneIsflying || remainingboneLaunch > 0)
-        return;
-
-    const qreal tiempoDeVuelo = 1.2; // segundos de reacción; ajustar al ritmo del juego
-    const qreal cooldown = 3.0;      // segundos entre lanzamientos
-
-    launchedBone.launchFromTo(pos_x, pos_y,jugador.getPos_x(), jugador.getPos_y(),tiempoDeVuelo);boneIsflying = launchedBone.isFlying();
-
-    if (boneIsflying)
-        remainingboneLaunch = cooldown;
-}
-
-
-void silbon::updateBone(qreal dt, player& jugador)
-{
-    if (dt <= 0)
-        return;
-
-    if (remainingboneLaunch > 0)
-        remainingboneLaunch = std::max(qreal(0), remainingboneLaunch - dt);
-
-    if (boneIsflying) {
-        launchedBone.parabolicMotion(dt, jugador);
-        boneIsflying = launchedBone.isFlying();
-    }
-}
-
-
-bone& silbon::getBone()
-{
-    return launchedBone;
-}
-
-void silbon::kickTureco(tureco& perro)
-{
-    if (remainingKickTureco > 0)
-        return;
-
-    const qreal distanceX = std::abs(perro.getPos_x() - pos_x);
-    const qreal kickRange = 40.0;
-
-    if (distanceX <= kickRange) {
-        perro.receiveKick(pos_x);
-        remainingKickTureco = 2.0; // Cooldown en segundos
-    }
-}
-
-
-void silbon::decreaseRemainingKick(qreal dt)
-{
-    remainingKickTureco = std::max(qreal(0), remainingKickTureco - dt);
-}
-*/

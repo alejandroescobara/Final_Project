@@ -1,5 +1,7 @@
 #include "Projectile.h"
 
+#include "Player.h"
+
 #include <algorithm>
 
 Projectile::Projectile(QVector2D initialPos,
@@ -63,6 +65,11 @@ void Projectile::update(float dt, const std::vector<Character*>& targets) {
   const float hitRadiusSq = radius * radius;
   for (Character* target : targets) {
     if (target == nullptr || !canHit(*target)) {
+      continue;
+    }
+
+    if (const auto* player = dynamic_cast<const Player*>(target);
+        player != nullptr && player->isRolling()) {
       continue;
     }
 

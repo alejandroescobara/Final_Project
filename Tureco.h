@@ -1,34 +1,28 @@
-/*
-#ifndef TURECO_H
-#define TURECO_H
+#pragma once
 
-#include "character.h"
+#include "Character.h"
 
-class player;
-class silbon;
+class Player;
+class Silbon;
 
-class tureco : public character
-{
-public:
-    tureco();
+class Tureco final : public Character {
+  private:
+    enum class MotionState { Attached, Outbound, Returning };
 
-    void persecuteSilbon(silbon& jefe, player& jugador, qreal dt);
-    void receiveKick(qreal silbonX);
+    MotionState motionState = MotionState::Attached;
+    float velocityX = 0.0f;
+    bool playerContactLatched = false;
+    float kickCooldown = 0.0f;
 
-private:
-    enum class State {
-        Chasing,
-        Launched,
-        SlidingWithSilbon,
-        Resting
-    };
+    void updatePhysics(float dt) override;
 
-    void runing(silbon& jefe, player& jugador, qreal dt);
+  public:
+    explicit Tureco(QVector2D initialPosition);
 
-    State state;
-    bool playerContactLatched;
-    qreal oscillationCenterX;
+    void update(float dt,
+                Silbon& silbon,
+                Player& player,
+                const std::vector<Character*>& targets);
+    bool kickAway(float silbonX, float playerX);
+    bool isKicked() const { return motionState != MotionState::Attached; }
 };
-
-#endif // TURECO_H
-*/

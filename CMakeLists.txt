@@ -18,38 +18,37 @@ set(PROJECT_SOURCES
         mainwindow.cpp
         mainwindow.h
         mainwindow.ui
+        game_assets.qrc
+        Agent.h Agent.cpp
+        agentTypes.h
+        Attack.h Attack.cpp
+        BoneAttack.h BoneAttack.cpp
+        BoxAttack.h BoxAttack.cpp
+        Character.h Character.cpp
+        GameplayConfig.h
+        Item.h Item.cpp
+        LateralPhysicsMotor.h LateralPhysicsMotor.cpp
+        LateralPlayer.h LateralPlayer.cpp
+        Level2GameWidget.h Level2GameWidget.cpp
+        LevelManager.h LevelManager.cpp
+        MarkovPredictor.h MarkovPredictor.cpp
+        Parry.h Parry.cpp
+        PhysicsMotor.h PhysicsMotor.cpp
+        PlanarPhysicsMotor.h PlanarPhysicsMotor.cpp
+        Player.h Player.cpp
+        Projectile.h Projectile.cpp
+        ProjectileAttack.h ProjectileAttack.cpp
+        QLearning.h QLearning.cpp
+        Roll.h Roll.cpp
+        Silbon.h Silbon.cpp
+        StatusEffect.h StatusEffect.cpp
+        Tureco.h Tureco.cpp
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(proyecto_final_info
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
-        Agent.h                Agent.cpp
-        AgentTypes.h
-        ArcAttack.h            ArcAttack.cpp
-        Attack.h               Attack.cpp
-        BoneAttack.h           BoneAttack.cpp
-        BoxAttack.h            BoxAttack.cpp
-        Character.h            Character.cpp
-        Doppel.h               Doppel.cpp
-        Errant.h               Errant.cpp
-        Item.h                 Item.cpp
-        LateralPhysicsMotor.h  LateralPhysicsMotor.cpp
-        LateralPlayer.h        LateralPlayer.cpp
-        MarkovPredictor.h      MarkovPredictor.cpp
-        Parry.h                Parry.cpp
-        PhysicsMotor.h         PhysicsMotor.cpp
-        PlanarPhysicsMotor.h   PlanarPhysicsMotor.cpp
-        PlanarPlayer.h         PlanarPlayer.cpp
-        Player.h               Player.cpp
-        Projectile.h           Projectile.cpp
-        ProjectileAttack.h     ProjectileAttack.cpp
-        QLearning.h            QLearning.cpp
-        Roll.h                 Roll.cpp
-        Silbon.h               Silbon.cpp
-        StatusEffect.h         StatusEffect.cpp
-        Tureco.h               Tureco.cpp
-
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET proyecto_final_info APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

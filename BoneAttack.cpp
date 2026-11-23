@@ -1,78 +1,79 @@
-/*
-#include "bone.h"
-#include "player.h"
+#include "BoneAttack.h"
+
 #include <algorithm>
+#include <cmath>
 
-bone::bone()
-    : finalx(0), finaly(0), startX(0), startY(0),
-      initialVx(0), initialVy(0), gravity(900.0),
-      elapsed(0), flightTime(0), flying(false)
-{}
+#include "Character.h"
+#include "GameplayConfig.h"
+#include "LateralPhysicsMotor.h"
+#include "LateralPlayer.h"
 
-void bone::launchFromTo(qreal originX, qreal originY,
-                        qreal targetX, qreal targetY, qreal seconds)
-{
-    pos_x = originX;
-    pos_y = originY;
-    launchTo(targetX, targetY, seconds);
-}
+BoneAttack::BoneAttack(int damage,
+                       float cooldown,
+                       float projectileSpeed,
+                       float projectileRadius,
+                       float projectileLifetime,
+                       ProjectileSpawner spawner,
+                       float gravity,
+                       float knockbackForce)
+    : ProjectileAttack(damage,
+                       cooldown,
+                       projectileSpeed,
+                       projectileRadius,
+                       projectileLifetime,
+                       std::move(spawner),
+                       knockbackForce,
+                       gravity,
+                       true,
+                       true,
+                       GameplayConfig::levelGroundY) {}
 
-void bone::launchTo(qreal targetX, qreal targetY, qreal seconds)
-{
-    if (seconds <= 0)
-        return;
-
-    startX = pos_x;
-    startY = pos_y;
-    finalx = targetX;
-    finaly = targetY;
-    flightTime = seconds;
-    elapsed = 0;
-
-    initialVx = (finalx - startX) / flightTime;
-    initialVy = (finaly - startY
-                 - 0.5 * gravity * flightTime * flightTime) / flightTime;
-    flying = true;
-}
-
-void bone::parabolicMotion(qreal dt, player& jugador)
-{
-    if (!flying || dt <= 0)
-        return;
-
-    elapsed = std::min(elapsed + dt, flightTime);
-
-    pos_x = startX + initialVx * elapsed;
-    pos_y = startY + initialVy * elapsed + 0.5 * gravity * elapsed * elapsed;
-
-    // Hitboxes centradas: hueso de 24x24 y jugador de 80x100.
-    const qreal boneHalfWidth = 12.0;
-    const qreal boneHalfHeight = 12.0;
-    const qreal playerHalfWidth = 40.0;
-    const qreal playerHalfHeight = 50.0;
-
-    const qreal dx = jugador.getPos_x() - pos_x;
-    const qreal dy = jugador.getPos_y() - pos_y;
-
-    const bool tocaJugador =
-        std::abs(dx) <= boneHalfWidth + playerHalfWidth &&
-        std::abs(dy) <= boneHalfHeight + playerHalfHeight;
-
-    if (tocaJugador && jugador.getRollRemaining() <= 0) {
-        makeDamage(jugador);
-        flying = false;
-        return;
+void BoneAttack::onExecute(Character& attacker,
+                           QVector2D direction,
+                           const std::vector<Character*>& targets) {
+  const Character* target = nullptr;
+  float shortestDistance = 0.0f;
+  for (Character* candidate : targets) {
+    if (candidate == nullptr || !attacker.isHostileTo(*candidate)) continue;
+    const float distance = (candidate->getPosition() - attacker.getPosition()).lengthSquared();
+    if (target == nullptr || distance < shortestDistance) {
+      target = candidate;
+      shortestDistance = distance;
     }
+  }
 
-    if (elapsed >= flightTime) {
-        pos_x = finalx;
-        pos_y = finaly;
-        flying = false;
+  QVector2D launchPosition = attacker.getPosition();
+  launchPosition.setY(launchPosition.y() - GameplayConfig::boneLaunchHeight);
+  QVector2D velocity;
+  float flightTime = 0.8f;
+
+  if (target != nullptr) {
+    flightTime = std::clamp(std::abs(target->getPosition().x() - launchPosition.x()) /
+                                getProjectileSpeed(),
+                            GameplayConfig::boneMinimumFlightTime,
+                            GameplayConfig::boneMaximumFlightTime);
+
+    QVector2D predictedTarget = target->getPosition() + target->getMoveVelocity() * flightTime;
+    if (const auto* lateralTarget = dynamic_cast<const LateralPlayer*>(target)) {
+      if (const auto* lateralPhysics = lateralTarget->getLateralPhysics()) {
+        const float verticalVelocity = lateralPhysics->getVerticalVelocity();
+        predictedTarget.setY(predictedTarget.y() + verticalVelocity * flightTime +
+                             0.5f * getGravity() * flightTime * flightTime);
+        predictedTarget.setY(std::clamp(predictedTarget.y(), 0.0f,
+                                        GameplayConfig::levelGroundY));
+      }
     }
-}
+    velocity.setX((predictedTarget.x() - launchPosition.x()) / flightTime);
+    velocity.setY((predictedTarget.y() - launchPosition.y()) / flightTime -
+                  0.5f * getGravity() * flightTime);
+  } else {
+    direction.normalize();
+    velocity = direction * getProjectileSpeed();
+    velocity.setY(velocity.y() - getGravity() * 0.5f);
+  }
 
-bool bone::isFlying() const
-{
-    return flying;
+  Projectile projectile(launchPosition, velocity, getDamage(), getProjectileRadius(),
+                        getProjectileLifetime(), attacker.getFaction(), getForce(),
+                        getGravity(), isParryable(), true, GameplayConfig::levelGroundY);
+  spawnProjectile(std::move(projectile));
 }
-*/

@@ -1,29 +1,20 @@
-/*
-#ifndef BONE_H
-#define BONE_H
+#pragma once
 
-#include "character.h"
+#include "ProjectileAttack.h"
 
-class player;
+class BoneAttack final : public ProjectileAttack {
+  private:
+    void onExecute(Character& attacker,
+                   QVector2D direction,
+                   const std::vector<Character*>& targets) override;
 
-class bone : public character
-{
-public:
-    bone();
-
-    void launchTo(qreal targetX, qreal targetY, qreal flightTime);
-    void launchFromTo(qreal startX, qreal startY,qreal targetX, qreal targetY, qreal flightTime);
-    void parabolicMotion(qreal dt, player& jugador);
-    bool isFlying() const;
-
-private:
-    qreal finalx, finaly;
-    qreal startX, startY;
-    qreal initialVx, initialVy;
-    qreal gravity;
-    qreal elapsed, flightTime;
-    bool flying;
+  public:
+    BoneAttack(int damage,
+               float cooldown,
+               float projectileSpeed,
+               float projectileRadius,
+               float projectileLifetime,
+               ProjectileSpawner spawner,
+               float gravity,
+               float knockbackForce = 0.0f);
 };
-
-#endif // BONE_H
-*/

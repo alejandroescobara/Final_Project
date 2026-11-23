@@ -1,45 +1,21 @@
 #pragma once
 
-#include <QVector2D>
-#include <vector>
+#include "Attack.h"
 
-#include "ProjectileAttack.h"
-
-class BoneAttack final : public ProjectileAttack {
+class BoxAttack final : public Attack {
   private:
-    float upwardBoost;
-    int boneCount;
-    float spreadAngleDeg;
-
-    Projectile createBone(const Character& attacker, QVector2D velocity) const;
+    float range;
+    float halfWidth;
 
     void onExecute(Character& attacker,
-                   QVector2D dir,
+                   QVector2D direction,
                    const std::vector<Character*>& targets) override;
 
   public:
-    BoneAttack(int damage,
-               float cooldown,
-               float projectileSpeed,
-               float projectileRadius,
-               float projectileLifetime,
-               ProjectileSpawner spawner = nullptr,
-               float upwardBoost = 350.0f,
-               float gravity = 980.0f,
-               int boneCount = 1,
-               float spreadAngleDeg = 15.0f,
-               float knockbackForce = 0.0f,
-               bool parryable = true,
-               bool hasGround = false,
-               float groundY = 0.0f);
-
-    void setUpwardBoost(float newUpwardBoost);
-    void setBoneCount(int newBoneCount);
-    void setSpreadAngleDeg(float newSpreadAngleDeg);
-
-    // METODOS TRIVIALES
-
-    float getUpwardBoost() const { return upwardBoost; }
-    int getBoneCount() const { return boneCount; }
-    float getSpreadAngleDeg() const { return spreadAngleDeg; }
+    BoxAttack(int damage,
+              float cooldown,
+              float range,
+              float halfWidth,
+              float knockbackForce = 0.0f,
+              bool parryable = true);
 };
