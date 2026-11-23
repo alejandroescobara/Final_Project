@@ -1,0 +1,46 @@
+# Carpetas de compilación
+/build/
+/cmake-build-*/
+/out/
+
+# CMake generado
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+Testing/
+
+# Qt Creator: preferencias locales del usuario
+*.user
+*.user.*
+*.qmlproject.user
+*.qmlproject.user.*
+
+# Archivos generados por Qt
+.qmake.stash
+moc_*.cpp
+ui_*.h
+qrc_*.cpp
+*.qmlc
+*.jsc
+
+# Objetos y ejecutables compilados
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dll
+*.dylib
+*.exe
+*.app
+
+# Registros y archivos temporales
+*.log
+*.tmp
+*.bak
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+Desktop.ini
