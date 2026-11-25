@@ -18,6 +18,9 @@ class Agent {
     doppelAction    lastAction;
     bool            hasPreviousState;
 
+    playerContext   lastPlayerContext;
+    bool            hasPreviousContext;
+
     playerContext buildPlayerContext(const egocentricPerception& perception) const;
 
     egocentricState buildEgocentricState(const egocentricPerception& perception, 
@@ -32,6 +35,8 @@ class Agent {
     doppelAngledAction update(const egocentricPerception& perception);
 
     void applyReward(double reward, const egocentricPerception& newPerception);
+
+    void resetTracking();
 
     inline void notifyPlayerUpgrade() {
       qAgent.onPlayerUpgrade();

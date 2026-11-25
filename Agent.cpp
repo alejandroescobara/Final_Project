@@ -11,7 +11,9 @@ Agent::Agent()
       qAgent(0.1, 0.9, 0.15), // alpha = 0.1, gamma = 0.9, epsilon = 0.15
       lastState{},
       lastAction(doppelAction::PARRY),
-      hasPreviousState(false) {}
+      hasPreviousState(false),
+      lastPlayerContext{},
+      hasPreviousContext(false) {}
 
 playerContext Agent::buildPlayerContext(const egocentricPerception& perception) const {
 
@@ -132,25 +134,31 @@ doppelAngledAction Agent::calculateAngledAction(doppelAction action,
 
 
 doppelAngledAction Agent::update(const egocentricPerception& perception) {
-  playerContext context = buildPlayerContext(perception);
-
-  if (perception.lastPlayerAction != playerAction::INACTIVE) {
-      markov.registerTransition(context, perception.lastPlayerAction);
+  if (hasPreviousContext && perception.lastPlayerAction != playerAction::INACTIVE) {
+    markov.registerTransition(lastPlayerContext, perception.lastPlayerAction);
   }
 
-  playerAction predictedAction = markov.predictNextAction(context);
+  playerContext context = buildPlayerContext(perception);
+  lastPlayerContext  = context;
+  hasPreviousContext = true;
 
+  playerAction predictedAction = markov.predictNextAction(context);
   egocentricState currentState = buildEgocentricState(perception, predictedAction);
-  
+
   qAgent.stepDecay();
 
-  doppelAction chosenAction    = qAgent.selectAction(currentState);
+  doppelAction chosenAction = qAgent.selectAction(currentState);
 
   lastState        = currentState;
   lastAction       = chosenAction;
   hasPreviousState = true;
 
   return calculateAngledAction(chosenAction, perception);
+}
+
+void Agent::resetTracking() {
+  hasPreviousState   = false;
+  hasPreviousContext = false;
 }
 
 void Agent::applyReward(double reward, const egocentricPerception& newPerception) {
