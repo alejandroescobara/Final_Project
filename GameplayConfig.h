@@ -1,6 +1,8 @@
 #pragma once
 
 namespace GameplayConfig {
+
+// ==================== Compartido y Nivel 2 (sin modificar para evitar conflictos) ====================
 inline constexpr int playerHealth = 100;
 inline constexpr int silbonHealth = 180;
 inline constexpr int turecoHealth = 70;
@@ -55,4 +57,88 @@ inline constexpr float enemyWeight = 1.5f;
 inline constexpr float silbonWeight = 10000.0f;
 inline constexpr float silbonBodyHeight = 184.0f;
 inline constexpr float gameTickSeconds = 1.0f / 60.0f;
-}
+
+// ==================== Nivel 1 (Vista en plano) ====================
+
+inline constexpr float parryStunDuration = 0.8f;
+inline constexpr float planarPlayerAttackAngle = 110.0f;
+inline constexpr int planarBaseXpToLevel = 50;
+inline constexpr int planarXpPerLevel = 25;
+
+struct CharacterStats {
+  int baseHp;
+  int hpPerLevel;
+  float baseSpeed;
+  float speedPerLevel;
+  float maxSpeed;
+  float weight;
+  int baseDamage;
+  int damagePerLevel;
+  float attackRange;
+};
+
+inline constexpr CharacterStats planarPlayer{
+    .baseHp = playerHealth,
+    .hpPerLevel = 20,
+    .baseSpeed = playerMoveSpeed,
+    .speedPerLevel = 12.0f,
+    .maxSpeed = 380.0f,
+    .weight = playerWeight,
+    .baseDamage = playerMeleeDamage,
+    .damagePerLevel = 6,
+    .attackRange = playerMeleeRange,
+};
+
+inline constexpr int errantBaseXp = 15;
+inline constexpr int errantXpPerLevel = 5;
+
+inline constexpr CharacterStats errant{
+    .baseHp = 24,
+    .hpPerLevel = 12,
+    .baseSpeed = 140.0f,
+    .speedPerLevel = 10.0f,
+    .maxSpeed = 230.0f,
+    .weight = 0.8f,
+    .baseDamage = 12,
+    .damagePerLevel = 4,
+    .attackRange = 36.0f,
+};
+
+inline constexpr int doppelBaseXp = 45;
+inline constexpr int doppelXpPerLevel = 15;
+inline constexpr float doppelAttackCooldown = 0.65f;
+inline constexpr float doppelAttackAngle = 90.0f;
+inline constexpr float doppelVisionRange = 360.0f;
+inline constexpr float doppelDecisionInterval = 0.25f;
+inline constexpr float doppelRollSpeed = playerRollDistance / playerRollDuration;
+inline constexpr float doppelRollDuration = playerRollDuration;
+inline constexpr float doppelRollCooldown = 1.15f;
+inline constexpr float doppelParryWindow = 0.24f;
+inline constexpr float doppelParryRecovery = 0.35f;
+inline constexpr float doppelParryCooldown = 0.90f;
+
+inline constexpr CharacterStats doppel{
+    .baseHp = 90,
+    .hpPerLevel = 25,
+    .baseSpeed = 240.0f,
+    .speedPerLevel = 10.0f,
+    .maxSpeed = 340.0f,
+    .weight = enemyWeight,
+    .baseDamage = 18,
+    .damagePerLevel = 5,
+    .attackRange = 100.0f,
+};
+
+inline constexpr float level1CameraWidth = 960.0f;
+inline constexpr float level1CameraHeight = 540.0f;
+
+inline constexpr float level1MapWidth = 2800.0f;
+inline constexpr float level1MapHeight = 2200.0f;
+inline constexpr float level1BoundaryMargin = 32.0f;
+inline constexpr float level1PortalTriggerDepth = 36.0f;
+
+inline constexpr float level1MinSpawnDistance = 580.0f;
+inline constexpr float level1MaxSpawnDistance = 820.0f;
+inline constexpr float level1ErrantDespawnDistance = 1150.0f;
+
+}  // namespace GameplayConfig

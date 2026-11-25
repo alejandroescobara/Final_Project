@@ -37,18 +37,24 @@ doppelAction QLearningAgent::selectAction(const egocentricState& state) {
     return ALL_DOPPEL_ACTIONS[actionDist(gen)];
   }
 
-  doppelAction bestAction = ALL_DOPPEL_ACTIONS[0];
-  double maxQ = -1e9;
+  std::array<doppelAction, ALL_DOPPEL_ACTIONS.size()> bestActions{};
+  size_t bestCount = 0;
+  double maxQ = 0.0;
+  constexpr double EPS = 1e-9;
 
   for (const auto& action : ALL_DOPPEL_ACTIONS) {
-    double qVal = getQValue(state, action);
-    if (qVal > maxQ) {
+    const double qVal = getQValue(state, action);
+    if (bestCount == 0 || qVal > maxQ + EPS) {
       maxQ = qVal;
-      bestAction = action;
+      bestActions[0] = action;
+      bestCount = 1;
+    } else if (qVal >= maxQ - EPS) {
+      bestActions[bestCount++] = action;
     }
   }
 
-  return bestAction;
+  std::uniform_int_distribution<size_t> tieDist(0, bestCount - 1);
+  return bestActions[tieDist(gen)];
 }
 
 void QLearningAgent::updateQValue(const egocentricState& lastState,

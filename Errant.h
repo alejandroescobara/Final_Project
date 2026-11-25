@@ -1,20 +1,30 @@
-/*
 #pragma once
 
-#ifndef PHANTOM_H
-#define PHANTOM_H
+#include <QVector2D>
+#include <vector>
 
-#include <QtGlobal>
-#include "player.h"
-#include "character.h"
+#include "Character.h"
 
-class phantom : public character
-{
-public:
-    phantom(qreal posPhantomX, qreal posPhantomY); // la idea es que en base a la posicion del jugador wavemanager decida donde spawnean los fantasmas
-    static const char * rutaPng;
-    void atack(character & jugador) override;
-    void persecutePlayer(player & jugador, qreal segundos);
+class Player;
+
+class Errant final : public Character {
+  private:
+    int contactDamage;
+    int xpReward;
+    bool hitPlayer = false;
+
+  public:
+    using Character::update;
+
+    explicit Errant(QVector2D initialPosition, int level = 1);
+
+    void update(float dt,
+                Player& player,
+                const std::vector<Character*>& targets);
+
+    // METODOS TRIVIALES
+
+    int getContactDamage() const { return contactDamage; }
+    int getXpReward() const { return xpReward; }
+    bool didHitPlayer() const { return hitPlayer; }
 };
-#endif // PHANTOM_H
-*/

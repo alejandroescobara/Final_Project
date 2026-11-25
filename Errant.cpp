@@ -1,40 +1,56 @@
-/*
-#include "phantom.h"
-#include <cmath>
+#include "Errant.h"
 
-namespace {
-const qreal phantomHalfWidth = 40.0; //esto de aca toca moverlo segun el gameplay
-const qreal phantomHalfHeight = 50.0;
-const qreal playerHalfWidth = 40.0;
-const qreal playerHalfHeight = 50.0;
+#include <algorithm>
+#include <memory>
+
+#include "GameplayConfig.h"
+#include "PlanarPhysicsMotor.h"
+#include "Player.h"
+
+Errant::Errant(QVector2D initialPosition, int level)
+    : Character(initialPosition,
+                GameplayConfig::errant.baseHp,
+                GameplayConfig::errant.baseSpeed,
+                GameplayConfig::errant.weight,
+                std::make_unique<PlanarPhysicsMotor>(GameplayConfig::movementFriction),
+                Faction::Enemy),
+      contactDamage(GameplayConfig::errant.baseDamage +
+                    (std::max(1, level) - 1) * GameplayConfig::errant.damagePerLevel),
+      xpReward(GameplayConfig::errantBaseXp +
+               (std::max(1, level) - 1) * GameplayConfig::errantXpPerLevel) {
+  const auto& stats = GameplayConfig::errant;
+  const int extraLevels = std::max(1, level) - 1;
+
+  const int scaledHp = stats.baseHp + extraLevels * stats.hpPerLevel;
+  setMaxHp(scaledHp);
+  heal(scaledHp);
+
+  const float scaledSpeed = std::min(
+      stats.baseSpeed + extraLevels * stats.speedPerLevel,
+      stats.maxSpeed);
+  setBaseMoveSpeed(scaledSpeed);
 }
 
-phantom::phantom(qreal posPhantomX, qreal posPhantomY)
-{
-    pos_x = posPhantomX;
-    pos_y = posPhantomY;
+void Errant::update(float dt,
+                    Player& player,
+                    const std::vector<Character*>& targets) {
+  if (!isActive || dt <= 0.0f) return;
+
+  if (player.getIsActive()) {
+    move(player.getPosition() - position);
+  } else {
+    move(QVector2D(0.0f, 0.0f));
+  }
+
+  Character::update(dt, targets);
+  if (!isActive || !player.getIsActive() || !isHostileTo(player)) return;
+
+  const QVector2D toPlayer = player.getPosition() - position;
+  if (toPlayer.length() <= GameplayConfig::errant.attackRange) {
+    player.takeDamage(contactDamage, this, false);
+    hitPlayer = true;
+    isActive = false;
+    moveVelocity = QVector2D(0.0f, 0.0f);
+    externalVelocity = QVector2D(0.0f, 0.0f);
+  }
 }
-
-void phantom::persecutePlayer(player& jugador, qreal segundos)
-{
-    if (segundos <= 0)
-        return;
-
-    const qreal dx = jugador.getPos_x() - pos_x;
-    const qreal dy = jugador.getPos_y() - pos_y;
-
-    // Las posiciones son el centro de cada personaje.
-    const bool tocaJugador =
-        std::abs(dx) <= phantomHalfWidth + playerHalfWidth &&
-        std::abs(dy) <= phantomHalfHeight + playerHalfHeight;
-
-    if (tocaJugador && jugador.getRollRemaining() <= 0) {
-        makeDamage(jugador);
-        active = false;
-        return;
-    }
-
-    // Si el jugador está rodando, no recibe daño y el phantom sigue persiguiéndolo.
-    mover(dx, dy, segundos);
-}
-*/
