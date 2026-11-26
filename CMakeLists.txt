@@ -29,6 +29,7 @@ set(PROJECT_SOURCES
         Item.h Item.cpp
         LateralPhysicsMotor.h LateralPhysicsMotor.cpp
         LateralPlayer.h LateralPlayer.cpp
+        Level1GameWidget.h Level1GameWidget.cpp
         Level2GameWidget.h Level2GameWidget.cpp
         LevelManager.h LevelManager.cpp
         MarkovPredictor.h MarkovPredictor.cpp
@@ -43,6 +44,12 @@ set(PROJECT_SOURCES
         Silbon.h Silbon.cpp
         StatusEffect.h StatusEffect.cpp
         Tureco.h Tureco.cpp
+        PlanarPlayer.h PlanarPlayer.cpp
+        Errant.h Errant.cpp
+        WaveSpawner.h WaveSpawner.cpp
+        PlanarWorld.h PlanarWorld.cpp
+        Doppel.h Doppel.cpp
+        ArcAttack.h ArcAttack.cpp
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

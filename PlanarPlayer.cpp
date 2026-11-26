@@ -14,12 +14,13 @@ PlanarPlayer::PlanarPlayer(QVector2D initialPosition)
              GameplayConfig::planarPlayer.weight,
              std::make_unique<PlanarPhysicsMotor>(GameplayConfig::movementFriction),
              Roll(GameplayConfig::playerRollDistance / GameplayConfig::playerRollDuration,
-                   GameplayConfig::playerRollDuration,
-                   GameplayConfig::playerRollCooldown),
+                  GameplayConfig::playerRollDuration,
+                  GameplayConfig::playerRollCooldown),
              Parry(GameplayConfig::playerParryWindow,
                    GameplayConfig::parryRecovery,
                    GameplayConfig::parryCooldown,
-                   GameplayConfig::parryStunDuration)) {
+                   GameplayConfig::parryStunDuration)),
+      xpToNextLevel(GameplayConfig::planarBaseXpToLevel) {
   const auto& stats = GameplayConfig::planarPlayer;
 
   setPrimaryAttack(std::make_unique<ArcAttack>(
@@ -30,9 +31,27 @@ PlanarPlayer::PlanarPlayer(QVector2D initialPosition)
       GameplayConfig::meleeKnockback));
 }
 
+bool PlanarPlayer::addXp(int amount) {
+  if (!getIsActive() || amount <= 0) {
+    return false;
+  }
+
+  xp += amount;
+  bool leveledUp = false;
+
+  while (xp >= xpToNextLevel) {
+    xp -= xpToNextLevel;
+    levelUp();
+    leveledUp = true;
+  }
+
+  return leveledUp;
+}
+
 void PlanarPlayer::levelUp() {
   const auto& stats = GameplayConfig::planarPlayer;
   ++level;
+  xpToNextLevel += GameplayConfig::planarXpPerLevel;
 
   setMaxHp(getMaxHp() + stats.hpPerLevel);
   heal(stats.hpPerLevel);

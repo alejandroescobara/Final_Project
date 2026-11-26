@@ -3,6 +3,7 @@
 #include <QWidget>
 
 class QStackedWidget;
+class Level1GameWidget;
 class Level2GameWidget;
 
 enum class GameLevel { LevelOne, LevelTwo };
@@ -13,11 +14,10 @@ class LevelManager final : public QWidget {
   private:
     QStackedWidget* pages;
     QWidget* menuPage;
-    QWidget* levelOnePage;
+    Level1GameWidget* levelOnePage;
     Level2GameWidget* levelTwoPage;
 
     QWidget* createMenuPage();
-    QWidget* createLevelOnePage();
     void launchLevel(GameLevel level);
     void showMenu();
 

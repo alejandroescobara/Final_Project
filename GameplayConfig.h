@@ -81,8 +81,8 @@ inline constexpr CharacterStats planarPlayer{
     .baseHp = playerHealth,
     .hpPerLevel = 20,
     .baseSpeed = playerMoveSpeed,
-    .speedPerLevel = 12.0f,
-    .maxSpeed = 380.0f,
+    .speedPerLevel = 2.5f,
+    .maxSpeed = 310.0f,
     .weight = playerWeight,
     .baseDamage = playerMeleeDamage,
     .damagePerLevel = 6,
@@ -95,9 +95,9 @@ inline constexpr int errantXpPerLevel = 5;
 inline constexpr CharacterStats errant{
     .baseHp = 24,
     .hpPerLevel = 12,
-    .baseSpeed = 140.0f,
-    .speedPerLevel = 10.0f,
-    .maxSpeed = 230.0f,
+    .baseSpeed = 300.0f,
+    .speedPerLevel = 5.0f,
+    .maxSpeed = 350.0f,
     .weight = 0.8f,
     .baseDamage = 12,
     .damagePerLevel = 4,
@@ -120,9 +120,9 @@ inline constexpr float doppelParryCooldown = 0.90f;
 inline constexpr CharacterStats doppel{
     .baseHp = 90,
     .hpPerLevel = 25,
-    .baseSpeed = 240.0f,
-    .speedPerLevel = 10.0f,
-    .maxSpeed = 340.0f,
+    .baseSpeed = 250.0f,
+    .speedPerLevel = 6.0f,
+    .maxSpeed = 315.0f,
     .weight = enemyWeight,
     .baseDamage = 18,
     .damagePerLevel = 5,
@@ -141,4 +141,13 @@ inline constexpr float level1MinSpawnDistance = 580.0f;
 inline constexpr float level1MaxSpawnDistance = 820.0f;
 inline constexpr float level1ErrantDespawnDistance = 1150.0f;
 
-}  // namespace GameplayConfig
+inline constexpr int level1DoppelsForBoss = 5;
+inline constexpr int level1MaxErrantsWhileDrunk = 3;
+inline constexpr int level1MaxActiveErrants = 5;
+inline constexpr float level1ErrantSpawnInterval = 2.6f;
+inline constexpr float level1FirstDoppelDelay = 3.0f;
+inline constexpr float level1DoppelRespawnDelay = 2.5f;
+
+inline constexpr float level1DrunkDuration = 30.0f;
+inline constexpr float level1DrunkResponsiveness = 4.0f;
+} 

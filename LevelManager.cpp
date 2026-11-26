@@ -5,13 +5,14 @@
 #include <QStackedWidget>
 #include <QVBoxLayout>
 
+#include "Level1GameWidget.h"
 #include "Level2GameWidget.h"
 
 LevelManager::LevelManager(QWidget* parent)
     : QWidget(parent),
       pages(new QStackedWidget(this)),
       menuPage(createMenuPage()),
-      levelOnePage(createLevelOnePage()),
+      levelOnePage(new Level1GameWidget(this)),
       levelTwoPage(new Level2GameWidget(this)) {
   auto* layout = new QVBoxLayout(this);
   layout->setContentsMargins(0, 0, 0, 0);
@@ -19,7 +20,12 @@ LevelManager::LevelManager(QWidget* parent)
   pages->addWidget(menuPage);
   pages->addWidget(levelOnePage);
   pages->addWidget(levelTwoPage);
+
+  connect(levelOnePage, &Level1GameWidget::returnToMenu, this, &LevelManager::showMenu);
+  connect(levelOnePage, &Level1GameWidget::enterBossFight, this,
+          [this] { launchLevel(GameLevel::LevelTwo); });
   connect(levelTwoPage, &Level2GameWidget::returnToMenu, this, &LevelManager::showMenu);
+
   showMenu();
 }
 
@@ -47,8 +53,8 @@ QWidget* LevelManager::createMenuPage() {
   levelTwoButton->setStyleSheet(buttonStyle);
 
   auto* note = new QLabel(QStringLiteral(
-      "El Nivel 2 ya incluye movimiento lateral, combate y el jefe.\n"
-      "El Nivel 1 queda enlazado al sistema; su escena Qt aún no está en este proyecto."), page);
+      "Nivel 1: sobrevive al efecto ebrio, derrota 5 Doppels y cruza el borde superior.\n"
+      "Nivel 2: enfrentamiento lateral contra el Silbón y el Tureco."), page);
   note->setAlignment(Qt::AlignCenter);
   note->setWordWrap(true);
   note->setStyleSheet(QStringLiteral("color:#c9bca8;font-size:14px;"));
@@ -69,33 +75,14 @@ QWidget* LevelManager::createMenuPage() {
   return page;
 }
 
-QWidget* LevelManager::createLevelOnePage() {
-  auto* page = new QWidget(this);
-  page->setStyleSheet(QStringLiteral("background:#211d1b; color:#f5e9d1;"));
-  auto* layout = new QVBoxLayout(page);
-  auto* title = new QLabel(QStringLiteral("Nivel 1 · Vista en plano"), page);
-  title->setAlignment(Qt::AlignCenter);
-  title->setStyleSheet(QStringLiteral("font-size:28px;font-weight:700;color:#e7c783;"));
-  auto* details = new QLabel(QStringLiteral(
-      "La base del nivel en plano existe en las clases de física y del agente,\n"
-      "pero este repositorio todavía no tiene su escena de juego conectada a Qt."), page);
-  details->setAlignment(Qt::AlignCenter);
-  details->setWordWrap(true);
-  auto* backButton = new QPushButton(QStringLiteral("Volver al menú"), page);
-  layout->addStretch();
-  layout->addWidget(title);
-  layout->addWidget(details);
-  layout->addWidget(backButton, 0, Qt::AlignHCenter);
-  layout->addStretch();
-  connect(backButton, &QPushButton::clicked, this, &LevelManager::showMenu);
-  return page;
-}
-
 void LevelManager::launchLevel(GameLevel level) {
   if (level == GameLevel::LevelOne) {
     levelTwoPage->setPaused(true);
+    levelOnePage->setPaused(false);
     pages->setCurrentWidget(levelOnePage);
+    levelOnePage->setFocus();
   } else {
+    levelOnePage->setPaused(true);
     levelTwoPage->setPaused(false);
     pages->setCurrentWidget(levelTwoPage);
     levelTwoPage->setFocus();
@@ -103,6 +90,7 @@ void LevelManager::launchLevel(GameLevel level) {
 }
 
 void LevelManager::showMenu() {
+  levelOnePage->setPaused(true);
   levelTwoPage->setPaused(true);
   pages->setCurrentWidget(menuPage);
 }
