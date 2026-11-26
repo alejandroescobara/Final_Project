@@ -23,6 +23,7 @@ namespace {
 }  // namespace
 
 PlanarWorld::PlanarWorld() {
+  sharedAiKnowledge.load();
   reset();
 }
 
@@ -62,6 +63,7 @@ void PlanarWorld::update(float dt, const PlanarInput& input) {
                  player->getPosition(),
                  isPlayerDrunk(),
                  doppelsDefeated,
+                 sharedAiKnowledge,
                  errants,
                  doppels);
 
@@ -225,6 +227,7 @@ playerAction PlanarWorld::classifyDirectionAction(QVector2D dir,
 
 void PlanarWorld::handleDeathsAndProgression() {
   bool playerLeveledUp = false;
+  bool anyDoppelDefeated = false;
 
   for (const auto& errant : errants) {
     if (!errant->getIsActive() && !errant->didHitPlayer()) {
@@ -237,7 +240,7 @@ void PlanarWorld::handleDeathsAndProgression() {
   for (const auto& doppel : doppels) {
     if (!doppel->getIsActive()) {
       ++doppelsDefeated;
-      saveAgentKnowledge(doppel->getBrains());
+      anyDoppelDefeated = true;
 
       if (player->addXp(doppel->getXpReward())) {
         playerLeveledUp = true;
@@ -253,9 +256,11 @@ void PlanarWorld::handleDeathsAndProgression() {
   }
 
   if (playerLeveledUp) {
-    for (auto& doppel : doppels) {
-      doppel->getBrains().notifyPlayerUpgrade();
-    }
+    sharedAiKnowledge.notifyPlayerUpgrade();
+  }
+
+  if (anyDoppelDefeated) {
+    saveAllKnowledge();
   }
 }
 
@@ -286,17 +291,15 @@ QRectF PlanarWorld::getBossPortalRect() const {
                 GameplayConfig::level1BoundaryMargin + GameplayConfig::level1PortalTriggerDepth);
 }
 
-void PlanarWorld::saveAgentKnowledge(const Agent& agent) const {
-  std::error_code ec;
-  const std::filesystem::path dir = std::filesystem::path(DEFAULT_QTABLE_PATH).parent_path();
-  if (!dir.empty()) {
-    std::filesystem::create_directories(dir, ec);
-  }
-  agent.saveKnowledge();
-}
-
 void PlanarWorld::saveAllKnowledge() const {
-  for (const auto& doppel : doppels) {
-    saveAgentKnowledge(doppel->getBrains());
+  std::error_code ec;
+  const std::filesystem::path qDir = std::filesystem::path(DEFAULT_QTABLE_PATH).parent_path();
+  if (!qDir.empty()) {
+    std::filesystem::create_directories(qDir, ec);
   }
+  const std::filesystem::path mDir = std::filesystem::path(DEFAULT_MARKOV_PATH).parent_path();
+  if (!mDir.empty() && mDir != qDir) {
+    std::filesystem::create_directories(mDir, ec);
+  }
+  sharedAiKnowledge.save();
 }

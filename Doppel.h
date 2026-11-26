@@ -36,7 +36,7 @@ class Doppel final : public Character {
     bool executeParry();
 
   public:
-    explicit Doppel(QVector2D initialPosition, int level = 1);
+    Doppel(QVector2D initialPosition, AgentKnowledge& sharedKnowledge, int level = 1);
 
     void update(float dt, const std::vector<Character*>& worldCharacters = {}) override;
     void update(float dt,

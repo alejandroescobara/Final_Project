@@ -53,13 +53,14 @@ namespace {
   }
 }  // namespace
 
-Doppel::Doppel(QVector2D initialPosition, int level)
+Doppel::Doppel(QVector2D initialPosition, AgentKnowledge& sharedKnowledge, int level)
     : Character(initialPosition,
                 GameplayConfig::doppel.baseHp,
                 GameplayConfig::doppel.baseSpeed,
                 GameplayConfig::doppel.weight,
                 std::make_unique<PlanarPhysicsMotor>(GameplayConfig::movementFriction),
                 Faction::Enemy),
+      brains(sharedKnowledge),
       roll(GameplayConfig::doppelRollSpeed,
            GameplayConfig::doppelRollDuration,
            GameplayConfig::doppelRollCooldown),

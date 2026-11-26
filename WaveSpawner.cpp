@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 
+#include "Agent.h"
 #include "Doppel.h"
 #include "Errant.h"
 #include "GameplayConfig.h"
@@ -28,6 +29,7 @@ void WaveSpawner::update(float dt,
                          QVector2D playerPos,
                          bool isPlayerDrunk,
                          int doppelsDefeated,
+                         AgentKnowledge& sharedKnowledge,
                          std::vector<std::unique_ptr<Errant>>& errants,
                          std::vector<std::unique_ptr<Doppel>>& doppels) {
   if (dt <= 0.0f) return;
@@ -53,7 +55,7 @@ void WaveSpawner::update(float dt,
   if (doppelsSpawned == 0) {
     doppelSpawnTimer -= dt;
     if (doppelSpawnTimer <= 0.0f) {
-      spawnDoppel(playerPos, enemyLevel, doppels);
+      spawnDoppel(playerPos, enemyLevel, sharedKnowledge, doppels);
       doppelSpawnTimer = GameplayConfig::level1DoppelRespawnDelay;
     }
     return;
@@ -67,10 +69,10 @@ void WaveSpawner::update(float dt,
   if (doppelSpawnTimer <= 0.0f) {
     const int pairThreshold = std::max(1, GameplayConfig::level1DoppelsForBoss - 2);
     if (doppelsSpawned < pairThreshold) {
-      spawnDoppel(playerPos, enemyLevel, doppels);
+      spawnDoppel(playerPos, enemyLevel, sharedKnowledge, doppels);
     } else {
-      spawnDoppel(playerPos, enemyLevel, doppels);
-      spawnDoppel(playerPos, enemyLevel, doppels);
+      spawnDoppel(playerPos, enemyLevel, sharedKnowledge, doppels);
+      spawnDoppel(playerPos, enemyLevel, sharedKnowledge, doppels);
     }
     doppelSpawnTimer = GameplayConfig::level1DoppelRespawnDelay;
   }
@@ -84,10 +86,10 @@ void WaveSpawner::spawnErrant(QVector2D playerPos,
 
 void WaveSpawner::spawnDoppel(QVector2D playerPos,
                               int enemyLevel,
+                              AgentKnowledge& sharedKnowledge,
                               std::vector<std::unique_ptr<Doppel>>& doppels) {
-  auto doppel = std::make_unique<Doppel>(pickSpawnPosition(playerPos), enemyLevel);
-  doppel->getBrains().loadKnowledge();
-  doppels.push_back(std::move(doppel));
+  doppels.push_back(std::make_unique<Doppel>(
+      pickSpawnPosition(playerPos), sharedKnowledge, enemyLevel));
   ++doppelsSpawned;
 }
 

@@ -5,6 +5,7 @@
 #include <random>
 #include <vector>
 
+struct AgentKnowledge;
 class Doppel;
 class Errant;
 
@@ -21,6 +22,7 @@ class WaveSpawner {
                      std::vector<std::unique_ptr<Errant>>& errants);
     void spawnDoppel(QVector2D playerPos,
                      int enemyLevel,
+                     AgentKnowledge& sharedKnowledge,
                      std::vector<std::unique_ptr<Doppel>>& doppels);
     QVector2D pickSpawnPosition(QVector2D playerPos);
     int computeEnemyLevel(int doppelsDefeated) const;
@@ -33,6 +35,7 @@ class WaveSpawner {
                 QVector2D playerPos,
                 bool isPlayerDrunk,
                 int doppelsDefeated,
+                AgentKnowledge& sharedKnowledge,
                 std::vector<std::unique_ptr<Errant>>& errants,
                 std::vector<std::unique_ptr<Doppel>>& doppels);
 

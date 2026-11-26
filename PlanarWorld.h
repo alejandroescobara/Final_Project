@@ -5,6 +5,7 @@
 #include <memory>
 #include <vector>
 
+#include "Agent.h"
 #include "Doppel.h"
 #include "Errant.h"
 #include "PlanarPlayer.h"
@@ -27,6 +28,8 @@ struct PlanarInput {
 
 class PlanarWorld {
   private:
+    AgentKnowledge sharedAiKnowledge;
+
     std::unique_ptr<PlanarPlayer> player;
     std::vector<std::unique_ptr<Errant>> errants;
     std::vector<std::unique_ptr<Doppel>> doppels;
@@ -57,7 +60,6 @@ class PlanarWorld {
     void handleDeathsAndProgression();
     void clampToArena(Character& character) const;
     void checkBossPortal();
-    void saveAgentKnowledge(const Agent& agent) const;
 
   public:
     PlanarWorld();
