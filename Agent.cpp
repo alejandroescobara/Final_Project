@@ -6,9 +6,8 @@ static double normalizeAngle(double angle) {
     return angle;
 }
 
-Agent::Agent()
-    : markov(),
-      qAgent(0.1, 0.9, 0.15), // alpha = 0.1, gamma = 0.9, epsilon = 0.15
+Agent::Agent(AgentKnowledge& sharedKnowledge)
+    : knowledge(sharedKnowledge),
       lastState{},
       lastAction(doppelAction::PARRY),
       hasPreviousState(false),
@@ -135,19 +134,19 @@ doppelAngledAction Agent::calculateAngledAction(doppelAction action,
 
 doppelAngledAction Agent::update(const egocentricPerception& perception) {
   if (hasPreviousContext && perception.lastPlayerAction != playerAction::INACTIVE) {
-    markov.registerTransition(lastPlayerContext, perception.lastPlayerAction);
+    knowledge.markov.registerTransition(lastPlayerContext, perception.lastPlayerAction);
   }
 
   playerContext context = buildPlayerContext(perception);
   lastPlayerContext  = context;
   hasPreviousContext = true;
 
-  playerAction predictedAction = markov.predictNextAction(context);
+  playerAction predictedAction = knowledge.markov.predictNextAction(context);
   egocentricState currentState = buildEgocentricState(perception, predictedAction);
 
-  qAgent.stepDecay();
+  knowledge.qAgent.stepDecay();
 
-  doppelAction chosenAction = qAgent.selectAction(currentState);
+  doppelAction chosenAction = knowledge.qAgent.selectAction(currentState);
 
   lastState        = currentState;
   lastAction       = chosenAction;
@@ -162,27 +161,21 @@ void Agent::resetTracking() {
 }
 
 void Agent::applyReward(double reward, const egocentricPerception& newPerception) {
-    
   if (!hasPreviousState) return;
 
-    playerContext newContext     = buildPlayerContext(newPerception);
-    playerAction predictedAction = markov.predictNextAction(newContext);
-    egocentricState newState     = buildEgocentricState(newPerception, predictedAction);
+  playerContext newContext     = buildPlayerContext(newPerception);
+  playerAction predictedAction = knowledge.markov.predictNextAction(newContext);
+  egocentricState newState     = buildEgocentricState(newPerception, predictedAction);
 
-    qAgent.updateQValue(lastState, lastAction, reward, newState);
+  knowledge.qAgent.updateQValue(lastState, lastAction, reward, newState);
 
-    lastState = newState;
+  lastState = newState;
 }
 
 bool Agent::saveKnowledge(std::string_view markovPath, std::string_view qTablePath) const {
-  if (!markov.saveFrequencies(markovPath)) return false;
-  if (!qAgent.saveQTable(qTablePath))      return false;
-  return true;
+  return knowledge.save(markovPath, qTablePath);
 }
 
 bool Agent::loadKnowledge(std::string_view markovPath, std::string_view qTablePath) {
-  if (!qAgent.loadQTable(qTablePath))      return false;
-  if (!markov.loadFrequencies(markovPath)) return false;
-  qAgent.setEpsilon(0.10);
-  return true;
+  return knowledge.load(markovPath, qTablePath);
 }
