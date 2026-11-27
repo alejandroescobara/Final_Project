@@ -72,8 +72,13 @@ void Tureco::update(float dt,
     }
 
     nextX += velocityX * dt;
-    const float playerX = player.getPosition().x();
-    const bool crossedPlayer = std::min(oldX, nextX) <= playerX + 42.0f &&
+    const QVector2D playerPosition = player.getPosition();
+    const float playerX = playerPosition.x();
+    const bool playerIsAtTurecoHeight =
+        std::abs(playerPosition.y() - getPosition().y()) <=
+        GameplayConfig::turecoMeleeHalfWidth;
+    const bool crossedPlayer = playerIsAtTurecoHeight &&
+                               std::min(oldX, nextX) <= playerX + 42.0f &&
                                std::max(oldX, nextX) >= playerX - 42.0f;
     if (crossedPlayer && !playerContactLatched) {
       if (!player.isRolling()) {

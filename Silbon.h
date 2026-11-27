@@ -17,6 +17,8 @@ class Silbon final : public Character {
     float attachedWaitTimer = 0.0f;
     float specialAttackSpacingTimer = 0.0f;
     bool turecoWasKicked = false;
+    bool playerInMeleeRange = false;
+    float meleeAttackTimer = 0.0f;
 
   public:
     Silbon(QVector2D initialPosition, ProjectileAttack::ProjectileSpawner spawner);
@@ -27,3 +29,5 @@ class Silbon final : public Character {
                 QVector2D playerPosition,
                 Tureco& tureco);
 };
+
+

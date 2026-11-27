@@ -23,8 +23,14 @@ void Player::update(float dt, const std::vector<Character*>& worldCharacters) {
 
   Character::update(dt, worldCharacters);
 
-  for (const auto& item : equippedItems) {
-    item->update(*this, dt);
+  for (auto item = equippedItems.begin(); item != equippedItems.end();) {
+    (*item)->update(*this, dt);
+    if ((*item)->isExpired()) {
+      (*item)->onRemove(*this);
+      item = equippedItems.erase(item);
+    } else {
+      ++item;
+    }
   }
 
   updateRegen(dt);

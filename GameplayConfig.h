@@ -8,6 +8,7 @@ inline constexpr int silbonHealth = 180;
 inline constexpr int turecoHealth = 70;
 
 inline constexpr float silbonMeleeCooldown = 1.15f;
+inline constexpr float silbonMeleeInterval = 1.0f;
 inline constexpr float boneCooldown = 6.4f;
 inline constexpr float turecoKickCooldown = 8.0f;
 inline constexpr float turecoAttachedWait = 1.8f;
@@ -33,6 +34,13 @@ inline constexpr float playerParryWindow = 0.28f;
 inline constexpr float playerJumpSpeed = 620.0f;
 inline constexpr float lateralGravity = 1500.0f;
 inline constexpr float levelGroundY = 570.0f;
+inline constexpr float level2PlatformOneX = 300.0f;
+inline constexpr float level2PlatformOneY = 460.0f;
+inline constexpr float level2PlatformOneWidth = 230.0f;
+inline constexpr float level2PlatformTwoX = 690.0f;
+inline constexpr float level2PlatformTwoY = 405.0f;
+inline constexpr float level2PlatformTwoWidth = 230.0f;
+inline constexpr float level2PlatformThickness = 14.0f;
 inline constexpr float playerMoveSpeed = 280.0f;
 inline constexpr float silbonMoveSpeed = 105.0f;
 inline constexpr float meleeRange = 100.0f;
@@ -40,7 +48,7 @@ inline constexpr float turecoAttachedOffset = 38.0f;
 inline constexpr float parryRecovery = 0.30f;
 inline constexpr float parryCooldown = 0.60f;
 inline constexpr float boneProjectileSpeed = 400.0f;
-inline constexpr float boneProjectileGravity = 900.0f;
+inline constexpr float boneProjectileGravity = 1200.0f;
 inline constexpr float boneProjectileRadius = 18.0f;
 inline constexpr float boneProjectileLifetime = 2.2f;
 inline constexpr float meleeKnockback = 230.0f;
@@ -49,7 +57,9 @@ inline constexpr float boneMinimumFlightTime = 0.45f;
 inline constexpr float boneMaximumFlightTime = 1.50f;
 inline constexpr float playerMeleeRange = 112.0f;
 inline constexpr float playerMeleeHalfWidth = 52.0f;
+inline constexpr float level2PlayerMeleeHalfWidth = 180.0f;
 inline constexpr float enemyMeleeHalfWidth = 48.0f;
+inline constexpr float silbonMeleeHalfWidth = 170.0f;
 inline constexpr float turecoMeleeRange = 90.0f;
 inline constexpr float turecoMeleeHalfWidth = 42.0f;
 inline constexpr float playerWeight = 1.0f;
@@ -64,6 +74,9 @@ inline constexpr float parryStunDuration = 0.8f;
 inline constexpr float planarPlayerAttackAngle = 110.0f;
 inline constexpr int planarBaseXpToLevel = 50;
 inline constexpr int planarXpPerLevel = 25;
+inline constexpr int level1RosaryDropChancePercent = 50;
+inline constexpr float level1RosaryDuration = 10.0f;
+inline constexpr float level1RosaryRegenPerSecond = 1.0f;
 
 struct CharacterStats {
   int baseHp;
@@ -151,3 +164,7 @@ inline constexpr float level1DoppelRespawnDelay = 2.5f;
 inline constexpr float level1DrunkDuration = 30.0f;
 inline constexpr float level1DrunkResponsiveness = 4.0f;
 } 
+
+
+
+

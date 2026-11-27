@@ -5,6 +5,7 @@
 #include <QMouseEvent>
 #include <QtMath>
 #include <algorithm>
+#include <array>
 #include <cmath>
 
 #include "GameplayConfig.h"
@@ -12,7 +13,6 @@
 namespace {
   constexpr int FRAME_INTERVAL_MS = 16;
   constexpr float MAX_DELTA_TIME = 0.05f;
-  constexpr float GRID_CELL_SIZE = 100.0f;
   constexpr float ATTACK_FLASH_DURATION = 0.14f;
 }  // namespace
 
@@ -20,6 +20,9 @@ Level1GameWidget::Level1GameWidget(QWidget* parent)
     : QWidget(parent) {
   setFocusPolicy(Qt::StrongFocus);
   setMouseTracking(true);
+
+  backgroundImage.load(QStringLiteral(":/assets/level1_background.png"));
+  ghostSpriteSheet.load(QStringLiteral(":/assets/ghost_silbon_bone_spritesheet.png"));
 
   connect(&timer, &QTimer::timeout, this, &Level1GameWidget::updateGame);
   timer.setInterval(FRAME_INTERVAL_MS);
@@ -179,26 +182,12 @@ void Level1GameWidget::drawWorld(QPainter& painter, QPointF cameraOrigin) const 
   const float mapW = GameplayConfig::level1MapWidth;
   const float mapH = GameplayConfig::level1MapHeight;
 
-  // Fondo y cuadrícula para percibir el desplazamiento de cámara y el efecto borracho
-  painter.fillRect(QRectF(0.0, 0.0, mapW, mapH), QColor(34, 30, 26));
-
-  const float startX = std::floor(static_cast<float>(cameraOrigin.x()) / GRID_CELL_SIZE) * GRID_CELL_SIZE;
-  const float endX = std::min(mapW, static_cast<float>(cameraOrigin.x()) + GameplayConfig::level1CameraWidth + GRID_CELL_SIZE);
-  const float startY = std::floor(static_cast<float>(cameraOrigin.y()) / GRID_CELL_SIZE) * GRID_CELL_SIZE;
-  const float endY = std::min(mapH, static_cast<float>(cameraOrigin.y()) + GameplayConfig::level1CameraHeight + GRID_CELL_SIZE);
-
-  painter.setPen(QPen(QColor(52, 46, 40), 1.0));
-  for (float x = std::max(0.0f, startX); x <= endX; x += GRID_CELL_SIZE) {
-    painter.drawLine(QPointF(x, 0.0), QPointF(x, mapH));
+  // Fondo del escenario; la imagen ya incluye los muros y el terreno de la arena.
+  if (!backgroundImage.isNull()) {
+    painter.drawImage(QRectF(0.0, 0.0, mapW, mapH), backgroundImage);
+  } else {
+    painter.fillRect(QRectF(0.0, 0.0, mapW, mapH), QColor(34, 30, 26));
   }
-  for (float y = std::max(0.0f, startY); y <= endY; y += GRID_CELL_SIZE) {
-    painter.drawLine(QPointF(0.0, y), QPointF(mapW, y));
-  }
-
-  // Borde de la arena
-  painter.setPen(QPen(QColor(150, 120, 82), 4.0));
-  painter.setBrush(Qt::NoBrush);
-  painter.drawRect(QRectF(0.0, 0.0, mapW, mapH));
 
   // Zona del portal hacia el Nivel 2 (borde superior)
   const QRectF portalRect = world.getBossPortalRect();
@@ -216,9 +205,29 @@ void Level1GameWidget::drawWorld(QPainter& painter, QPointF cameraOrigin) const 
   for (const auto& errant : world.getErrants()) {
     if (!errant->getIsActive()) continue;
     const QPointF pos = errant->getPosition().toPointF();
-    painter.setBrush(QColor(195, 70, 65));
-    painter.setPen(QPen(QColor(255, 185, 175), 2.0));
-    painter.drawEllipse(pos, 15.0, 15.0);
+    if (!ghostSpriteSheet.isNull()) {
+      QVector2D moveDirection = errant->getMoveVelocity();
+      if (moveDirection.isNull()) {
+        moveDirection = errant->getFacingVector();
+      }
+
+      int directionCell = 0;  // Abajo
+      if (std::abs(moveDirection.x()) > std::abs(moveDirection.y())) {
+        directionCell = moveDirection.x() < 0.0f ? 2 : 3;  // Izquierda / derecha
+      } else if (moveDirection.y() < 0.0f) {
+        directionCell = 1;  // Arriba
+      }
+
+      const std::array<QRect, 4> ghostFrames{
+          QRect(16, 120, 312, 444), QRect(360, 104, 308, 476),
+          QRect(700, 152, 308, 380), QRect(1040, 160, 308, 364)};
+      const QRectF ghostRect(pos.x() - 22.0, pos.y() - 30.0, 44.0, 60.0);
+      painter.drawImage(ghostRect, ghostSpriteSheet, ghostFrames[directionCell]);
+    } else {
+      painter.setBrush(QColor(195, 70, 65));
+      painter.setPen(QPen(QColor(255, 185, 175), 2.0));
+      painter.drawEllipse(pos, 15.0, 15.0);
+    }
 
     drawBar(painter, QRectF(pos.x() - 18.0, pos.y() - 26.0, 36.0, 5.0),
             errant->getHp(), errant->getMaxHp(), QColor(220, 75, 70));
@@ -299,6 +308,16 @@ void Level1GameWidget::drawHud(QPainter& painter) const {
                        .arg(world.getDoppelsDefeated())
                        .arg(GameplayConfig::level1DoppelsForBoss)
                        .arg(world.getErrants().size()));
+
+  const float rosaryRemaining = player.getRosaryRemainingTime();
+  if (rosaryRemaining > 0.0f) {
+    const QRectF banner(width() * 0.5 - 150.0, 54.0, 300.0, 30.0);
+    painter.fillRect(banner, QColor(106, 79, 31, 220));
+    painter.setPen(QColor(255, 235, 170));
+    painter.drawText(banner, Qt::AlignCenter,
+                     QStringLiteral("ROSARIO · Regeneración %1 s")
+                         .arg(rosaryRemaining, 0, 'f', 1));
+  }
 
   // Aviso de estado borracho o portal desbloqueado
   if (world.isPlayerDrunk()) {
@@ -453,3 +472,7 @@ void Level1GameWidget::focusOutEvent(QFocusEvent* event) {
   clearInputState();
   QWidget::focusOutEvent(event);
 }
+
+
+
+

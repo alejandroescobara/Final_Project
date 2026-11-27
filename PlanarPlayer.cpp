@@ -3,8 +3,11 @@
 #include <algorithm>
 #include <memory>
 
+#include <QRandomGenerator>
+
 #include "ArcAttack.h"
 #include "GameplayConfig.h"
+#include "Item.h"
 #include "PlanarPhysicsMotor.h"
 
 PlanarPlayer::PlanarPlayer(QVector2D initialPosition)
@@ -42,6 +45,7 @@ bool PlanarPlayer::addXp(int amount) {
   while (xp >= xpToNextLevel) {
     xp -= xpToNextLevel;
     levelUp();
+    grantRosaryOnLevelUp();
     leveledUp = true;
   }
 
@@ -63,4 +67,30 @@ void PlanarPlayer::levelUp() {
   if (primaryAttack) {
     primaryAttack->setDamage(primaryAttack->getDamage() + stats.damagePerLevel);
   }
+}
+
+void PlanarPlayer::grantRosaryOnLevelUp() {
+  if (QRandomGenerator::global()->bounded(100) >=
+      static_cast<quint32>(GameplayConfig::level1RosaryDropChancePercent)) {
+    return;
+  }
+
+  for (const auto& item : getEquippedItems()) {
+    if (auto* rosary = dynamic_cast<Rosary*>(item.get())) {
+      rosary->refreshDuration(GameplayConfig::level1RosaryDuration);
+      return;
+    }
+  }
+
+  equipItem(std::make_unique<Rosary>(GameplayConfig::level1RosaryRegenPerSecond,
+                                     GameplayConfig::level1RosaryDuration));
+}
+
+float PlanarPlayer::getRosaryRemainingTime() const {
+  for (const auto& item : getEquippedItems()) {
+    if (const auto* rosary = dynamic_cast<const Rosary*>(item.get())) {
+      return rosary->getRemainingDuration();
+    }
+  }
+  return 0.0f;
 }

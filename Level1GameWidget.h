@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QElapsedTimer>
+#include <QImage>
 #include <QPainter>
 #include <QPointF>
 #include <QTimer>
@@ -16,6 +17,8 @@ class Level1GameWidget final : public QWidget {
     QTimer timer;
     QElapsedTimer frameTimer;
     PlanarWorld world;
+    QImage backgroundImage;
+    QImage ghostSpriteSheet;
 
     bool moveUp = false;
     bool moveDown = false;
@@ -67,3 +70,5 @@ class Level1GameWidget final : public QWidget {
     void setPaused(bool paused);
     void restartLevel();
 };
+
+

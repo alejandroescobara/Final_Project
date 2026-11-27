@@ -20,6 +20,8 @@ class Level2GameWidget final : public QWidget {
     QTimer timer;
     QImage background;
     QImage playerSpriteSheet;
+    QImage ghostSilbonBoneSpriteSheet;
+    QImage turecoSpriteSheet;
     std::unique_ptr<LateralPlayer> player;
     std::unique_ptr<Silbon> silbon;
     std::unique_ptr<Tureco> tureco;
@@ -29,8 +31,17 @@ class Level2GameWidget final : public QWidget {
     bool gameFinished = false;
     bool playerWon = false;
 
+    enum class PlayerAnimation { Idle, Run, Attack, Parry, Roll, Jump };
+    PlayerAnimation playerAnimation = PlayerAnimation::Idle;
+    float playerAnimationTime = 0.0f;
+    float attackAnimationTimer = 0.0f;
+    float silbonAnimationTime = 0.0f;
+    float turecoAnimationTime = 0.0f;
+    float turecoFacing = 1.0f;
+
     void restartLevel();
     void updateGame();
+    void updatePlayerAnimation(float dt);
     void drawHealthBar(QPainter& painter, QRectF rect, int health, int maxHealth,
                        const QColor& color) const;
 
@@ -47,3 +58,6 @@ class Level2GameWidget final : public QWidget {
     ~Level2GameWidget() override;
     void setPaused(bool paused);
 };
+
+
+

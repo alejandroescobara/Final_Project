@@ -11,6 +11,7 @@ class PlanarPlayer final : public Player {
     int xpToNextLevel;
 
     void levelUp();
+    void grantRosaryOnLevelUp();
 
   public:
     explicit PlanarPlayer(QVector2D initialPosition);
@@ -22,4 +23,5 @@ class PlanarPlayer final : public Player {
     int getLevel() const { return level; }
     int getXp() const { return xp; }
     int getXpToNextLevel() const { return xpToNextLevel; }
+    float getRosaryRemainingTime() const;
 };

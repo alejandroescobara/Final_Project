@@ -1,6 +1,12 @@
 <RCC>
   <qresource prefix="/assets">
     <file alias="level2_background.png">assets/level2_background.png</file>
+    <file alias="level1_background.png">assets/level1_background.png</file>
     <file alias="player_spritesheet.png">assets/player_spritesheet.png</file>
+    <file alias="tureco_spritesheet.png">assets/tureco_spritesheet.png</file>
+    <file alias="ghost_silbon_bone_spritesheet.png">assets/ghost_silbon_bone_spritesheet.png</file>
   </qresource>
 </RCC>
+
+
+

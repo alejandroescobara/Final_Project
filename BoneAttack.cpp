@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cmath>
 
+#include <QRectF>
+
 #include "Character.h"
 #include "GameplayConfig.h"
 #include "LateralPhysicsMotor.h"
@@ -57,10 +59,21 @@ void BoneAttack::onExecute(Character& attacker,
     if (const auto* lateralTarget = dynamic_cast<const LateralPlayer*>(target)) {
       if (const auto* lateralPhysics = lateralTarget->getLateralPhysics()) {
         const float verticalVelocity = lateralPhysics->getVerticalVelocity();
-        predictedTarget.setY(predictedTarget.y() + verticalVelocity * flightTime +
-                             0.5f * getGravity() * flightTime * flightTime);
-        predictedTarget.setY(std::clamp(predictedTarget.y(), 0.0f,
-                                        GameplayConfig::levelGroundY));
+        const float currentY = target->getPosition().y();
+        const float predictedY = currentY + verticalVelocity * flightTime +
+                                 0.5f * lateralPhysics->getGravity() *
+                                     flightTime * flightTime;
+        float landingY = GameplayConfig::levelGroundY;
+        for (const QRectF& platform : lateralPhysics->getPlatforms()) {
+          const bool canLandOnPlatform = currentY <= platform.top() &&
+                                        predictedY >= platform.top() &&
+                                        predictedTarget.x() >= platform.left() &&
+                                        predictedTarget.x() <= platform.right();
+          if (canLandOnPlatform && platform.top() < landingY) {
+            landingY = static_cast<float>(platform.top());
+          }
+        }
+        predictedTarget.setY(std::clamp(predictedY, 0.0f, landingY));
       }
     }
     velocity.setX((predictedTarget.x() - launchPosition.x()) / flightTime);

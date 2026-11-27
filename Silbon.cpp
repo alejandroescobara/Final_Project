@@ -29,7 +29,7 @@ Silbon::Silbon(QVector2D initialPosition, ProjectileAttack::ProjectileSpawner sp
   setPrimaryAttack(std::make_unique<BoxAttack>(GameplayConfig::silbonMeleeDamage,
                                                 GameplayConfig::silbonMeleeCooldown,
                                                 GameplayConfig::meleeRange,
-                                                GameplayConfig::enemyMeleeHalfWidth,
+                                                GameplayConfig::silbonMeleeHalfWidth,
                                                 GameplayConfig::meleeKnockback));
 }
 
@@ -55,11 +55,25 @@ void Silbon::update(float dt,
 
   const QVector2D difference = playerPosition - getPosition();
   const float distance = std::abs(difference.x());
+  if (distance > GameplayConfig::meleeRange) {
+    playerInMeleeRange = false;
+    meleeAttackTimer = 0.0f;
+  } else if (!playerInMeleeRange) {
+    playerInMeleeRange = true;
+    meleeAttackTimer = GameplayConfig::silbonMeleeInterval;
+  } else {
+    meleeAttackTimer = std::max(0.0f, meleeAttackTimer - dt);
+  }
+
   if (distance > GameplayConfig::meleeRange * 0.72f) {
     move(QVector2D(difference.x() > 0.0f ? 1.0f : -1.0f, 0.0f));
   } else {
     move(QVector2D());
+  }
+
+  if (playerInMeleeRange && meleeAttackTimer <= 0.0f) {
     attack(QVector2D(difference.x() >= 0.0f ? 1.0f : -1.0f, 0.0f), targets);
+    meleeAttackTimer = GameplayConfig::silbonMeleeInterval;
   }
 
   if (specialAttackSpacingTimer <= 0.0f) {
@@ -76,3 +90,8 @@ void Silbon::update(float dt,
 
   Character::update(dt, targets);
 }
+
+
+
+
+
