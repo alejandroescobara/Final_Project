@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Character.h"
+#include "GameplayConfig.h"
 
 class Player;
 class Silbon;
@@ -17,7 +18,8 @@ class Tureco final : public Character {
     void updatePhysics(float dt) override;
 
   public:
-    explicit Tureco(QVector2D initialPosition);
+    explicit Tureco(QVector2D initialPosition,
+                    int damage = GameplayConfig::turecoDamage);
 
     void update(float dt,
                 Silbon& silbon,

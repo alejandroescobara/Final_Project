@@ -46,6 +46,12 @@ Level2GameWidget::Level2GameWidget(QWidget* parent)
 
 Level2GameWidget::~Level2GameWidget() = default;
 
+void Level2GameWidget::setDifficulty(Level2Difficulty newDifficulty) {
+  if (difficulty == newDifficulty) return;
+  difficulty = newDifficulty;
+  restartLevel();
+}
+
 void Level2GameWidget::setPaused(bool paused) {
   if (paused) timer.stop();
   else if (!timer.isActive()) timer.start();
@@ -90,12 +96,17 @@ void Level2GameWidget::restartLevel() {
       GameplayConfig::level2PlayerMeleeHalfWidth,
       GameplayConfig::meleeKnockback));
 
+  const bool hardMode = difficulty == Level2Difficulty::Hard;
   silbon = std::make_unique<Silbon>(
       QVector2D(870.0f, GameplayConfig::levelGroundY),
-      [this](Projectile projectile) { projectiles.push_back(std::move(projectile)); });
+      [this](Projectile projectile) { projectiles.push_back(std::move(projectile)); },
+      hardMode ? GameplayConfig::hardSilbonMeleeDamage : GameplayConfig::silbonMeleeDamage,
+      hardMode ? GameplayConfig::hardBoneDamage : GameplayConfig::boneDamage,
+      hardMode ? 3 : 1);
   tureco = std::make_unique<Tureco>(
       QVector2D(870.0f + GameplayConfig::turecoAttachedOffset,
-                GameplayConfig::levelGroundY));
+                GameplayConfig::levelGroundY),
+      hardMode ? GameplayConfig::hardTurecoDamage : GameplayConfig::turecoDamage);
 }
 
 void Level2GameWidget::updateGame() {

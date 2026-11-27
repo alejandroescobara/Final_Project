@@ -4,6 +4,9 @@
 
 class BoneAttack final : public ProjectileAttack {
   private:
+    int projectileCount;
+    float spreadAngleDegrees;
+
     void onExecute(Character& attacker,
                    QVector2D direction,
                    const std::vector<Character*>& targets) override;
@@ -16,5 +19,7 @@ class BoneAttack final : public ProjectileAttack {
                float projectileLifetime,
                ProjectileSpawner spawner,
                float gravity,
-               float knockbackForce = 0.0f);
+               float knockbackForce = 0.0f,
+               int projectileCount = 1,
+               float spreadAngleDegrees = 10.0f);
 };

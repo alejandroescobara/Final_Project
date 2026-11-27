@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include <QRectF>
+#include <QtMath>
 
 #include "Character.h"
 #include "GameplayConfig.h"
@@ -17,7 +18,9 @@ BoneAttack::BoneAttack(int damage,
                        float projectileLifetime,
                        ProjectileSpawner spawner,
                        float gravity,
-                       float knockbackForce)
+                       float knockbackForce,
+                       int projectileCount,
+                       float spreadAngleDegrees)
     : ProjectileAttack(damage,
                        cooldown,
                        projectileSpeed,
@@ -28,7 +31,9 @@ BoneAttack::BoneAttack(int damage,
                        gravity,
                        true,
                        true,
-                       GameplayConfig::levelGroundY) {}
+                       GameplayConfig::levelGroundY),
+      projectileCount(std::max(1, projectileCount)),
+      spreadAngleDegrees(std::max(0.0f, spreadAngleDegrees)) {}
 
 void BoneAttack::onExecute(Character& attacker,
                            QVector2D direction,
@@ -85,8 +90,17 @@ void BoneAttack::onExecute(Character& attacker,
     velocity.setY(velocity.y() - getGravity() * 0.5f);
   }
 
-  Projectile projectile(launchPosition, velocity, getDamage(), getProjectileRadius(),
-                        getProjectileLifetime(), attacker.getFaction(), getForce(),
-                        getGravity(), isParryable(), true, GameplayConfig::levelGroundY);
-  spawnProjectile(std::move(projectile));
+  const int centerIndex = projectileCount / 2;
+  for (int i = 0; i < projectileCount; ++i) {
+    const float angleDegrees = (i - centerIndex) * spreadAngleDegrees;
+    const float angleRadians = qDegreesToRadians(angleDegrees);
+    const float cosine = std::cos(angleRadians);
+    const float sine = std::sin(angleRadians);
+    const QVector2D spreadVelocity(velocity.x() * cosine - velocity.y() * sine,
+                                   velocity.x() * sine + velocity.y() * cosine);
+    Projectile projectile(launchPosition, spreadVelocity, getDamage(), getProjectileRadius(),
+                          getProjectileLifetime(), attacker.getFaction(), getForce(),
+                          getGravity(), isParryable(), true, GameplayConfig::levelGroundY);
+    spawnProjectile(std::move(projectile));
+  }
 }

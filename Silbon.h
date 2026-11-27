@@ -21,7 +21,11 @@ class Silbon final : public Character {
     float meleeAttackTimer = 0.0f;
 
   public:
-    Silbon(QVector2D initialPosition, ProjectileAttack::ProjectileSpawner spawner);
+    Silbon(QVector2D initialPosition,
+           ProjectileAttack::ProjectileSpawner spawner,
+           int meleeDamage = GameplayConfig::silbonMeleeDamage,
+           int boneDamage = GameplayConfig::boneDamage,
+           int boneProjectileCount = 1);
     ~Silbon() override;
 
     void update(float dt,

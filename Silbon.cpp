@@ -10,7 +10,11 @@
 #include "LateralPhysicsMotor.h"
 #include "Tureco.h"
 
-Silbon::Silbon(QVector2D initialPosition, ProjectileAttack::ProjectileSpawner spawner)
+Silbon::Silbon(QVector2D initialPosition,
+               ProjectileAttack::ProjectileSpawner spawner,
+               int meleeDamage,
+               int boneDamage,
+               int boneProjectileCount)
     : Character(initialPosition,
                 GameplayConfig::silbonHealth,
                 GameplayConfig::silbonMoveSpeed,
@@ -19,14 +23,16 @@ Silbon::Silbon(QVector2D initialPosition, ProjectileAttack::ProjectileSpawner sp
                                                       GameplayConfig::lateralGravity,
                                                       GameplayConfig::movementFriction),
                 Faction::Enemy),
-      boneAttack(std::make_unique<BoneAttack>(GameplayConfig::boneDamage,
+      boneAttack(std::make_unique<BoneAttack>(boneDamage,
                                               GameplayConfig::boneCooldown,
                                               GameplayConfig::boneProjectileSpeed,
                                               GameplayConfig::boneProjectileRadius,
                                               GameplayConfig::boneProjectileLifetime,
                                               std::move(spawner),
-                                              GameplayConfig::boneProjectileGravity)) {
-  setPrimaryAttack(std::make_unique<BoxAttack>(GameplayConfig::silbonMeleeDamage,
+                                              GameplayConfig::boneProjectileGravity,
+                                              0.0f,
+                                              boneProjectileCount)) {
+  setPrimaryAttack(std::make_unique<BoxAttack>(meleeDamage,
                                                 GameplayConfig::silbonMeleeCooldown,
                                                 GameplayConfig::meleeRange,
                                                 GameplayConfig::silbonMeleeHalfWidth,

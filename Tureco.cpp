@@ -10,7 +10,7 @@
 #include "Player.h"
 #include "Silbon.h"
 
-Tureco::Tureco(QVector2D initialPosition)
+Tureco::Tureco(QVector2D initialPosition, int damage)
     : Character(initialPosition,
                 GameplayConfig::turecoHealth,
                 0.0f,
@@ -19,7 +19,7 @@ Tureco::Tureco(QVector2D initialPosition)
                                                       GameplayConfig::lateralGravity,
                                                       GameplayConfig::movementFriction),
                 Faction::Enemy) {
-  setPrimaryAttack(std::make_unique<BoxAttack>(GameplayConfig::turecoDamage,
+  setPrimaryAttack(std::make_unique<BoxAttack>(damage,
                                                 GameplayConfig::turecoMeleeCooldown,
                                                 GameplayConfig::turecoMeleeRange,
                                                 GameplayConfig::turecoMeleeHalfWidth,

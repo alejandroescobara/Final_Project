@@ -1,5 +1,6 @@
 #include "LevelManager.h"
 
+#include <QComboBox>
 #include <QLabel>
 #include <QPushButton>
 #include <QStackedWidget>
@@ -45,6 +46,17 @@ QWidget* LevelManager::createMenuPage() {
 
   auto* levelOneButton = new QPushButton(QStringLiteral("Nivel 1 · Vista en plano"), page);
   auto* levelTwoButton = new QPushButton(QStringLiteral("Nivel 2 · Silbón y Tureco"), page);
+  auto* difficultyLabel = new QLabel(QStringLiteral("Dificultad (solo afecta al Nivel 2)"), page);
+  difficultyLabel->setAlignment(Qt::AlignCenter);
+  difficultySelector = new QComboBox(page);
+  difficultySelector->addItem(QStringLiteral("Fácil"));
+  difficultySelector->addItem(QStringLiteral("Difícil"));
+  difficultySelector->setCurrentIndex(0);
+  difficultySelector->setStyleSheet(QStringLiteral(
+      "QComboBox{background:#3a3029;color:#fff3df;border:1px solid #c3995d;"
+      "border-radius:6px;padding:8px;font-size:16px;}"
+      "QComboBox QAbstractItemView{background:#3a3029;color:#fff3df;"
+      "selection-background-color:#70432f;}"));
   const QString buttonStyle = QStringLiteral(
       "QPushButton{background:#70432f;color:#fff3df;border:2px solid #c3995d;"
       "border-radius:8px;padding:14px;font-size:18px;}"
@@ -65,6 +77,9 @@ QWidget* LevelManager::createMenuPage() {
   layout->addSpacing(20);
   layout->addWidget(levelOneButton);
   layout->addWidget(levelTwoButton);
+  layout->addSpacing(8);
+  layout->addWidget(difficultyLabel);
+  layout->addWidget(difficultySelector);
   layout->addWidget(note);
   layout->addStretch();
 
@@ -83,6 +98,10 @@ void LevelManager::launchLevel(GameLevel level) {
     levelOnePage->setFocus();
   } else {
     levelOnePage->setPaused(true);
+    levelTwoPage->setDifficulty(
+        difficultySelector != nullptr && difficultySelector->currentIndex() == 1
+            ? Level2Difficulty::Hard
+            : Level2Difficulty::Easy);
     levelTwoPage->setPaused(false);
     pages->setCurrentWidget(levelTwoPage);
     levelTwoPage->setFocus();

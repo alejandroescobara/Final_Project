@@ -3,8 +3,12 @@
     <file alias="level2_background.png">assets/level2_background.png</file>
     <file alias="level1_background.png">assets/level1_background.png</file>
     <file alias="player_spritesheet.png">assets/player_spritesheet.png</file>
+    <file alias="otoniel_level1_spritesheet.png">assets/otoniel_level1_spritesheet.png</file>
+    <file alias="doppel_level1_spritesheet.png">assets/doppel_level1_spritesheet.png</file>
     <file alias="tureco_spritesheet.png">assets/tureco_spritesheet.png</file>
     <file alias="ghost_silbon_bone_spritesheet.png">assets/ghost_silbon_bone_spritesheet.png</file>
+    <file alias="player_damage.mp3">assets/sounds/player_damage.mp3</file>
+    <file alias="player_attack.mp3">assets/sounds/player_attack.mp3</file>
   </qresource>
 </RCC>
 

@@ -19,6 +19,10 @@ class Level1GameWidget final : public QWidget {
     PlanarWorld world;
     QImage backgroundImage;
     QImage ghostSpriteSheet;
+    QImage otonielSpriteSheet;
+    QImage doppelSpriteSheet;
+    float spriteAnimationTime = 0.0f;
+    float playerActionAnimationTimer = 0.0f;
 
     bool moveUp = false;
     bool moveDown = false;

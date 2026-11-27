@@ -2,6 +2,7 @@
 
 #include <QWidget>
 
+class QComboBox;
 class QStackedWidget;
 class Level1GameWidget;
 class Level2GameWidget;
@@ -13,6 +14,7 @@ class LevelManager final : public QWidget {
 
   private:
     QStackedWidget* pages;
+    QComboBox* difficultySelector = nullptr;
     QWidget* menuPage;
     Level1GameWidget* levelOnePage;
     Level2GameWidget* levelTwoPage;

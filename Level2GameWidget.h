@@ -13,6 +13,8 @@ class Projectile;
 class Silbon;
 class Tureco;
 
+enum class Level2Difficulty { Easy, Hard };
+
 class Level2GameWidget final : public QWidget {
   Q_OBJECT
 
@@ -30,6 +32,7 @@ class Level2GameWidget final : public QWidget {
     bool moveRight = false;
     bool gameFinished = false;
     bool playerWon = false;
+    Level2Difficulty difficulty = Level2Difficulty::Easy;
 
     enum class PlayerAnimation { Idle, Run, Attack, Parry, Roll, Jump };
     PlayerAnimation playerAnimation = PlayerAnimation::Idle;
@@ -57,6 +60,7 @@ class Level2GameWidget final : public QWidget {
     explicit Level2GameWidget(QWidget* parent = nullptr);
     ~Level2GameWidget() override;
     void setPaused(bool paused);
+    void setDifficulty(Level2Difficulty newDifficulty);
 };
 
 

@@ -10,6 +10,7 @@ Player::Player(QVector2D initialPos, int maxHealth, float baseMoveSpeed, float w
                std::unique_ptr<PhysicsMotor> physicsMotor,
                const Roll& rollConfig, const Parry& parryConfig)
       : Character(initialPos, maxHealth, baseMoveSpeed, weight, std::move(physicsMotor), Faction::Player),
+        gameAudio(std::make_unique<GameAudio>()),
         roll(rollConfig),
         parry(parryConfig) {}
 
@@ -50,6 +51,14 @@ void Player::updateRegen(float dt) {
   }
 }
 
+bool Player::attack(QVector2D direction, const std::vector<Character*>& targets) {
+  const bool attackStarted = Character::attack(direction, targets);
+  if (attackStarted && gameAudio) {
+    gameAudio->playAttack();
+  }
+  return attackStarted;
+}
+
 bool Player::takeDamage(int amount, Character* attacker, bool parryable) {
   if (!isActive || amount <= 0) return false;
 
@@ -57,7 +66,11 @@ bool Player::takeDamage(int amount, Character* attacker, bool parryable) {
     return false;
   }
 
-  return Character::takeDamage(amount, attacker, parryable);
+  const bool damaged = Character::takeDamage(amount, attacker, parryable);
+  if (damaged && gameAudio) {
+    gameAudio->playDamage();
+  }
+  return damaged;
 }
 
 bool Player::canAct() const {

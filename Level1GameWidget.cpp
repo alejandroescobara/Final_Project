@@ -9,11 +9,76 @@
 #include <cmath>
 
 #include "GameplayConfig.h"
+#include "Attack.h"
 
 namespace {
   constexpr int FRAME_INTERVAL_MS = 16;
   constexpr float MAX_DELTA_TIME = 0.05f;
   constexpr float ATTACK_FLASH_DURATION = 0.14f;
+  constexpr float ACTION_SPRITE_DURATION = 0.30f;
+  constexpr int SPRITE_CELL_SIZE = 512;
+
+  int facingAxis(const QVector2D& direction) {
+    if (std::abs(direction.x()) > std::abs(direction.y())) {
+      return direction.x() < 0.0f ? 3 : 2; // lado: izquierda / derecha
+    }
+    return direction.y() < 0.0f ? 1 : 0; // espalda / frente
+  }
+
+  void drawActorSprite(QPainter& painter,
+                       const QImage& sheet,
+                       QPointF position,
+                       QVector2D movement,
+                       QVector2D facing,
+                       float animationTime,
+                       bool actionActive,
+                       qreal width,
+                       qreal height) {
+    if (sheet.isNull()) return;
+
+    QVector2D direction = movement.isNull() ? facing : movement;
+    if (direction.isNull()) direction = QVector2D(0.0f, 1.0f);
+    const bool moving = !movement.isNull() && movement.lengthSquared() > 4.0f;
+    const int axis = facingAxis(direction);
+    int row = 0;
+    int column = 0;
+    bool flip = false;
+
+    if (actionActive) {
+      row = 3;
+      column = std::min(3, static_cast<int>(animationTime * 12.0f) % 4);
+    } else if (moving && axis >= 2) {
+      row = 1;
+      column = static_cast<int>(animationTime * 9.0f) % 5;
+      flip = axis == 3;
+    } else if (moving && axis == 1) {
+      row = 2;
+      column = static_cast<int>(animationTime * 7.0f) % 3;
+    } else if (axis == 1) {
+      row = 0;
+      column = 1;
+    } else if (axis >= 2) {
+      row = 0;
+      column = 2;
+      flip = axis == 3;
+    }
+
+    const QRect source(column * SPRITE_CELL_SIZE,
+                       row * SPRITE_CELL_SIZE,
+                       SPRITE_CELL_SIZE,
+                       SPRITE_CELL_SIZE);
+    const QRectF target(position.x() - width * 0.5,
+                        position.y() - height + 15.0,
+                        width,
+                        height);
+    painter.save();
+    if (flip) {
+      painter.translate(position.x() * 2.0, 0.0);
+      painter.scale(-1.0, 1.0);
+    }
+    painter.drawImage(target, sheet, source);
+    painter.restore();
+  }
 }  // namespace
 
 Level1GameWidget::Level1GameWidget(QWidget* parent)
@@ -23,6 +88,8 @@ Level1GameWidget::Level1GameWidget(QWidget* parent)
 
   backgroundImage.load(QStringLiteral(":/assets/level1_background.png"));
   ghostSpriteSheet.load(QStringLiteral(":/assets/ghost_silbon_bone_spritesheet.png"));
+  otonielSpriteSheet.load(QStringLiteral(":/assets/otoniel_level1_spritesheet.png"));
+  doppelSpriteSheet.load(QStringLiteral(":/assets/doppel_level1_spritesheet.png"));
 
   connect(&timer, &QTimer::timeout, this, &Level1GameWidget::updateGame);
   timer.setInterval(FRAME_INTERVAL_MS);
@@ -56,6 +123,8 @@ void Level1GameWidget::restartLevel() {
   clearInputState();
   attackFlashTimer = 0.0f;
   bossTransitionEmitted = false;
+  spriteAnimationTime = 0.0f;
+  playerActionAnimationTimer = 0.0f;
   frameTimer.restart();
   update();
 }
@@ -76,8 +145,12 @@ void Level1GameWidget::updateGame() {
                           : (static_cast<float>(FRAME_INTERVAL_MS) / 1000.0f);
   const float dt = std::clamp(rawDt, 0.0f, MAX_DELTA_TIME);
 
+  spriteAnimationTime += dt;
   if (attackFlashTimer > 0.0f) {
     attackFlashTimer = std::max(0.0f, attackFlashTimer - dt);
+  }
+  if (playerActionAnimationTimer > 0.0f) {
+    playerActionAnimationTimer = std::max(0.0f, playerActionAnimationTimer - dt);
   }
 
   if (world.getState() != PlanarWorldState::Playing) {
@@ -102,6 +175,7 @@ void Level1GameWidget::updateGame() {
   input.parryPressed = parryQueued;
 
   if (input.attackPressed) {
+    playerActionAnimationTimer = ACTION_SPRITE_DURATION;
     lastAttackDir = !input.aimDirection.isNull()
                         ? input.aimDirection
                         : (!input.moveDirection.isNull()
@@ -233,21 +307,21 @@ void Level1GameWidget::drawWorld(QPainter& painter, QPointF cameraOrigin) const 
             errant->getHp(), errant->getMaxHp(), QColor(220, 75, 70));
   }
 
-  // Doppels
+  // Doppels: usan la hoja azul para distinguirlos de Otoniel.
   for (const auto& doppel : world.getDoppels()) {
     if (!doppel->getIsActive()) continue;
     const QPointF pos = doppel->getPosition().toPointF();
-    const QPointF dirEnd = (doppel->getPosition() + doppel->getFacingVector() * 28.0f).toPointF();
+    const Attack* doppelAttack = doppel->getPrimaryAttack();
+    const bool attackPose = doppelAttack && doppelAttack->getCooldownTimer() > 0.0f &&
+                            doppelAttack->getCooldown() - doppelAttack->getCooldownTimer() < ACTION_SPRITE_DURATION;
+    drawActorSprite(painter, doppelSpriteSheet, pos, doppel->getMoveVelocity(),
+                    doppel->getFacingVector(), spriteAnimationTime,
+                    doppel->isRolling() || doppel->isParrying() || attackPose,
+                    54.0, 66.0);
 
-    painter.setBrush(QColor(175, 80, 210));
-    painter.setPen(QPen(QColor(240, 195, 255), 2.5));
-    painter.drawEllipse(pos, 20.0, 20.0);
-    painter.drawLine(pos, dirEnd);
-
-    drawBar(painter, QRectF(pos.x() - 24.0, pos.y() - 32.0, 48.0, 6.0),
-            doppel->getHp(), doppel->getMaxHp(), QColor(200, 95, 235));
+    drawBar(painter, QRectF(pos.x() - 25.0, pos.y() - 48.0, 50.0, 6.0),
+            doppel->getHp(), doppel->getMaxHp(), QColor(65, 145, 225));
   }
-
   // Jugador
   const PlanarPlayer& player = world.getPlayer();
   const QPointF playerPos = player.getPosition().toPointF();
@@ -267,15 +341,11 @@ void Level1GameWidget::drawWorld(QPainter& painter, QPointF cameraOrigin) const 
                     static_cast<int>(spanDeg * 16.0));
   }
 
-  const QColor playerFill = world.isPlayerDrunk() ? QColor(215, 160, 70) : QColor(75, 165, 220);
-  painter.setBrush(playerFill);
-  painter.setPen(QPen(QColor(245, 240, 225), 2.5));
-  painter.drawEllipse(playerPos, 18.0, 18.0);
-
-  const QPointF facingEnd = (player.getPosition() + player.getFacingVector() * 28.0f).toPointF();
-  painter.setPen(QPen(QColor(255, 245, 210), 3.0));
-  painter.drawLine(playerPos, facingEnd);
-}
+  drawActorSprite(painter, otonielSpriteSheet, playerPos, player.getMoveVelocity(),
+                  player.getFacingVector(), spriteAnimationTime,
+                  player.isRolling() || player.isParrying() ||
+                      playerActionAnimationTimer > 0.0f,
+                  54.0, 68.0);}
 
 void Level1GameWidget::drawHud(QPainter& painter) const {
   const PlanarPlayer& player = world.getPlayer();

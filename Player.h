@@ -5,6 +5,7 @@
 #include <QVector2D>
 
 #include "Character.h"
+#include "GameAudio.h"
 #include "Parry.h"
 #include "Roll.h"
 
@@ -14,6 +15,7 @@ class PhysicsMotor;
 class Player : public Character {
   private:
     std::vector<std::unique_ptr<Item>> equippedItems;
+    std::unique_ptr<GameAudio> gameAudio;
 
     float regenRate = 0.0f;
     float regenAccumulator = 0.0f;
@@ -36,6 +38,7 @@ class Player : public Character {
     ~Player() override;
 
     void update(float dt, const std::vector<Character*>& worldCharacters = {}) override;
+    bool attack(QVector2D direction, const std::vector<Character*>& targets);
     bool takeDamage(int amount,
                     Character* attacker = nullptr,
                     bool parryable = true) override;
