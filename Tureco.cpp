@@ -82,7 +82,7 @@ void Tureco::update(float dt,
                                std::max(oldX, nextX) >= playerX - 42.0f;
     if (crossedPlayer && !playerContactLatched) {
       if (!player.isRolling()) {
-        if (player.isParrying()) {
+        if (player.isBlocking() || player.isParrying()) {
           const float towardTureco = getPosition().x() - playerX;
           const float facing = player.getFacingVector().x();
           if (facing * towardTureco > 0.0f) {

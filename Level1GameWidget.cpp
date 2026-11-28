@@ -3,6 +3,8 @@
 #include <QFocusEvent>
 #include <QKeyEvent>
 #include <QMouseEvent>
+#include <QLinearGradient>
+#include <QPainterPath>
 #include <QtMath>
 #include <algorithm>
 #include <array>
@@ -25,18 +27,31 @@ namespace {
     return direction.y() < 0.0f ? 1 : 0; // espalda / frente
   }
 
+  int attackSpriteRow(const QVector2D& direction) {
+    switch (facingAxis(direction)) {
+      case 1: return 4; // ataque hacia arriba
+      case 2: return 5; // ataque hacia la derecha
+      case 0: return 7; // ataque hacia abajo: reutiliza la pose lateral izquierda
+      default: return 7; // ataque hacia la izquierda
+    }
+  }
+
   void drawActorSprite(QPainter& painter,
                        const QImage& sheet,
                        QPointF position,
                        QVector2D movement,
                        QVector2D facing,
+                       QVector2D actionDirection,
                        float animationTime,
-                       bool actionActive,
+                       int actionRow,
+                       float actionElapsed,
                        qreal width,
                        qreal height) {
     if (sheet.isNull()) return;
 
-    QVector2D direction = movement.isNull() ? facing : movement;
+    QVector2D direction = actionRow >= 0
+        ? (actionDirection.isNull() ? facing : actionDirection)
+        : (movement.isNull() ? facing : movement);
     if (direction.isNull()) direction = QVector2D(0.0f, 1.0f);
     const bool moving = !movement.isNull() && movement.lengthSquared() > 4.0f;
     const int axis = facingAxis(direction);
@@ -44,9 +59,21 @@ namespace {
     int column = 0;
     bool flip = false;
 
-    if (actionActive) {
-      row = 3;
-      column = std::min(3, static_cast<int>(animationTime * 12.0f) % 4);
+    if (actionRow >= 0) {
+      row = actionRow;
+      if (row == 3) {
+        // Inicio y cierre comparten la pose direccional; el cuadro central es la bolita.
+        const int rollStartColumn = axis == 0 ? 2 : axis == 1 ? 1 : 0;
+        const bool isBallPhase = actionElapsed >= 0.08f && actionElapsed < 0.24f;
+        column = isBallPhase ? 3 : rollStartColumn;
+        flip = axis == 3 && !isBallPhase;
+      } else if (row >= 4 && row <= 7) {
+        // Las filas nuevas son preparación y golpe para cada orientación.
+        column = actionElapsed < 0.12f ? 0 : 1;
+      }
+      if (row >= 4 && row <= 7) {
+        flip = (row == 5 || row == 7) && axis == 3;
+      }
     } else if (moving && axis >= 2) {
       row = 1;
       column = static_cast<int>(animationTime * 9.0f) % 5;
@@ -314,10 +341,17 @@ void Level1GameWidget::drawWorld(QPainter& painter, QPointF cameraOrigin) const 
     const Attack* doppelAttack = doppel->getPrimaryAttack();
     const bool attackPose = doppelAttack && doppelAttack->getCooldownTimer() > 0.0f &&
                             doppelAttack->getCooldown() - doppelAttack->getCooldownTimer() < ACTION_SPRITE_DURATION;
+    const int doppelActionRow = doppel->isRolling() ? 3 :
+                                doppel->isParrying() ? 8 :
+                                attackPose ? attackSpriteRow(doppel->getFacingVector()) : -1;
+    const float doppelActionElapsed = doppel->isRolling()
+        ? doppel->getRollElapsedTime()
+        : attackPose ? doppelAttack->getCooldown() - doppelAttack->getCooldownTimer()
+                     : spriteAnimationTime;
     drawActorSprite(painter, doppelSpriteSheet, pos, doppel->getMoveVelocity(),
-                    doppel->getFacingVector(), spriteAnimationTime,
-                    doppel->isRolling() || doppel->isParrying() || attackPose,
-                    54.0, 66.0);
+                    doppel->getFacingVector(), doppel->getFacingVector(),
+                    spriteAnimationTime,
+                    doppelActionRow, doppelActionElapsed, 54.0, 66.0);
 
     drawBar(painter, QRectF(pos.x() - 25.0, pos.y() - 48.0, 50.0, 6.0),
             doppel->getHp(), doppel->getMaxHp(), QColor(65, 145, 225));
@@ -326,26 +360,71 @@ void Level1GameWidget::drawWorld(QPainter& painter, QPointF cameraOrigin) const 
   const PlanarPlayer& player = world.getPlayer();
   const QPointF playerPos = player.getPosition().toPointF();
 
-  // Arco visual temporal al atacar
+  // Haz cortante en media luna, orientado hacia el golpe.
   if (attackFlashTimer > 0.0f) {
-    const float radius = GameplayConfig::planarPlayer.attackRange;
-    const double angleRad = std::atan2(-lastAttackDir.y(), lastAttackDir.x());
-    const double centerDeg = qRadiansToDegrees(angleRad);
-    const double spanDeg = GameplayConfig::planarPlayerAttackAngle;
+    const qreal reach = GameplayConfig::planarPlayer.attackRange;
+    const qreal fade = std::clamp(attackFlashTimer / ATTACK_FLASH_DURATION, 0.0f, 1.0f);
+    const qreal progress = 1.0 - fade;
+    const qreal swingScale = 0.82 + 0.18 * progress;
 
-    painter.setBrush(QColor(245, 220, 130, 85));
-    painter.setPen(QPen(QColor(255, 235, 160, 180), 2.0));
-    painter.drawPie(QRectF(playerPos.x() - radius, playerPos.y() - radius,
-                           radius * 2.0f, radius * 2.0f),
-                    static_cast<int>((centerDeg - spanDeg * 0.5) * 16.0),
-                    static_cast<int>(spanDeg * 16.0));
+    QPainterPath crescent;
+    crescent.moveTo(reach * 0.32, -reach * 0.24);
+    crescent.cubicTo(reach * 0.48, -reach * 0.68,
+                     reach * 0.91, -reach * 0.60,
+                     reach, 0.0);
+    crescent.cubicTo(reach * 0.91, reach * 0.60,
+                     reach * 0.48, reach * 0.68,
+                     reach * 0.32, reach * 0.24);
+    crescent.cubicTo(reach * 0.51, reach * 0.13,
+                     reach * 0.58, -reach * 0.13,
+                     reach * 0.32, -reach * 0.24);
+    crescent.closeSubpath();
+
+    painter.save();
+    painter.translate(playerPos);
+    painter.rotate(qRadiansToDegrees(std::atan2(lastAttackDir.y(), lastAttackDir.x())));
+    painter.scale(swingScale, swingScale);
+    painter.setOpacity(fade);
+
+    QLinearGradient glow(0.0, -reach * 0.45, reach, reach * 0.45);
+    glow.setColorAt(0.0, QColor(255, 246, 190, 235));
+    glow.setColorAt(0.48, QColor(255, 204, 91, 220));
+    glow.setColorAt(1.0, QColor(229, 116, 45, 205));
+    painter.setBrush(glow);
+    painter.setPen(QPen(QColor(93, 45, 26, 225), 2.5, Qt::SolidLine,
+                        Qt::RoundCap, Qt::RoundJoin));
+    painter.drawPath(crescent);
+
+    QPainterPath highlight;
+    highlight.moveTo(reach * 0.34, -reach * 0.22);
+    highlight.cubicTo(reach * 0.50, -reach * 0.60,
+                      reach * 0.87, -reach * 0.52,
+                      reach * 0.94, 0.0);
+    highlight.cubicTo(reach * 0.87, reach * 0.52,
+                      reach * 0.50, reach * 0.60,
+                      reach * 0.34, reach * 0.22);
+    painter.setBrush(Qt::NoBrush);
+    painter.setPen(QPen(QColor(255, 250, 218, 235), 2.0, Qt::SolidLine,
+                        Qt::RoundCap, Qt::RoundJoin));
+    painter.drawPath(highlight);
+    painter.restore();
   }
 
+  const int playerActionRow = player.isRolling() ? 3 :
+                              player.isParrying() ? 8 :
+                              playerActionAnimationTimer > 0.0f
+                                  ? attackSpriteRow(lastAttackDir)
+                                  : -1;
+  const float playerActionElapsed = player.isRolling()
+      ? player.getRollElapsedTime()
+      : ACTION_SPRITE_DURATION - playerActionAnimationTimer;
   drawActorSprite(painter, otonielSpriteSheet, playerPos, player.getMoveVelocity(),
-                  player.getFacingVector(), spriteAnimationTime,
-                  player.isRolling() || player.isParrying() ||
-                      playerActionAnimationTimer > 0.0f,
-                  54.0, 68.0);}
+                  player.getFacingVector(),
+                  playerActionRow >= 4 && playerActionRow <= 7
+                      ? lastAttackDir : player.getFacingVector(),
+                  spriteAnimationTime,
+                  playerActionRow, playerActionElapsed, 54.0, 68.0);
+}
 
 void Level1GameWidget::drawHud(QPainter& painter) const {
   const PlanarPlayer& player = world.getPlayer();

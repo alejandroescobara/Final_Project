@@ -22,5 +22,6 @@ class Roll {
     void update(Character& owner, float dt);
 
     bool isActive() const { return activeTimer > 0.0f; }
+    float getElapsedTime() const { return duration - activeTimer; }
     bool isReady() const { return cooldownTimer <= 0.0f && !isActive(); }
 };

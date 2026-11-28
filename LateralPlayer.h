@@ -9,6 +9,7 @@ class LateralPhysicsMotor;
 class LateralPlayer final : public Player {
   private:
     float jumpSpeed;
+    bool blocking = false;
 
     void updateFacingDirection(QVector2D dir) override;
 
@@ -26,6 +27,11 @@ class LateralPlayer final : public Player {
 
     bool jump();
     bool executeParry() override;
+    bool canAct() const override;
+    bool takeDamage(int amount, Character* attacker = nullptr,
+                    bool parryable = true) override;
+    bool setBlocking(bool enabled);
+    bool isBlocking() const override { return blocking; }
     bool executeRoll(QVector2D dir) override;
 
     bool isGrounded() const;

@@ -56,6 +56,7 @@ class Doppel final : public Character {
 
     int getXpReward() const { return xpReward; }
     bool isRolling() const { return roll.isActive(); }
+    float getRollElapsedTime() const { return roll.getElapsedTime(); }
     bool isParrying() const { return parry.isActive(); }
     bool isParryBusy() const { return parry.isBusy(); }
     bool isAiActive() const { return wasSeeingPlayer; }

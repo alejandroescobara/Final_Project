@@ -22,6 +22,7 @@ class Level2GameWidget final : public QWidget {
     QTimer timer;
     QImage background;
     QImage playerSpriteSheet;
+    QImage jumpSprite;
     QImage ghostSilbonBoneSpriteSheet;
     QImage turecoSpriteSheet;
     std::unique_ptr<LateralPlayer> player;
@@ -30,6 +31,7 @@ class Level2GameWidget final : public QWidget {
     std::vector<Projectile> projectiles;
     bool moveLeft = false;
     bool moveRight = false;
+    bool blockHeld = false;
     bool gameFinished = false;
     bool playerWon = false;
     Level2Difficulty difficulty = Level2Difficulty::Easy;
@@ -41,6 +43,7 @@ class Level2GameWidget final : public QWidget {
     float silbonAnimationTime = 0.0f;
     float turecoAnimationTime = 0.0f;
     float turecoFacing = 1.0f;
+    bool turecoIsMoving = false;
 
     void restartLevel();
     void updateGame();

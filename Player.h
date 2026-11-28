@@ -55,6 +55,8 @@ class Player : public Character {
     float getRegenRate() const { return regenRate; }
 
     bool isRolling() const { return roll.isActive(); }
+    virtual bool isBlocking() const { return false; }
+    float getRollElapsedTime() const { return roll.getElapsedTime(); }
     bool isParrying() const { return parry.isActive(); }
     bool isParryRecovering() const { return parry.isRecovering(); }
     bool isParryBusy() const { return parry.isBusy(); }

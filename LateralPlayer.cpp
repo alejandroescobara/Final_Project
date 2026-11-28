@@ -33,6 +33,26 @@ void LateralPlayer::updateFacingDirection(QVector2D dir) {
   }
 }
 
+bool LateralPlayer::canAct() const {
+  return !blocking && Player::canAct();
+}
+
+bool LateralPlayer::takeDamage(int amount, Character* attacker, bool parryable) {
+  if (blocking && parryable && getIsActive() && amount > 0) return false;
+  return Player::takeDamage(amount, attacker, parryable);
+}
+
+bool LateralPlayer::setBlocking(bool enabled) {
+  const bool shouldBlock = enabled && isGrounded();
+  if (blocking == shouldBlock) return blocking;
+  blocking = shouldBlock;
+  if (blocking) {
+    setMoveVelocity(QVector2D());
+    setExternalVelocity(QVector2D());
+  }
+  return blocking;
+}
+
 bool LateralPlayer::jump() {
   if (!isActive || !canAct()) {
     return false;

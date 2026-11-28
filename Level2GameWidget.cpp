@@ -33,6 +33,7 @@ Level2GameWidget::Level2GameWidget(QWidget* parent)
     : QWidget(parent),
       background(QStringLiteral(":/assets/level2_background.png")),
       playerSpriteSheet(QStringLiteral(":/assets/player_spritesheet.png")),
+      jumpSprite(QStringLiteral(":/assets/otoniel_jump.png")),
       ghostSilbonBoneSpriteSheet(QStringLiteral(":/assets/ghost_silbon_bone_spritesheet.png")),
       turecoSpriteSheet(QStringLiteral(":/assets/tureco_spritesheet.png")) {
   setFocusPolicy(Qt::StrongFocus);
@@ -67,8 +68,10 @@ void Level2GameWidget::restartLevel() {
   silbonAnimationTime = 0.0f;
   turecoAnimationTime = 0.0f;
   turecoFacing = 1.0f;
+  turecoIsMoving = false;
   moveLeft = false;
   moveRight = false;
+  blockHeld = false;
 
   player = std::make_unique<LateralPlayer>(
       QVector2D(170.0f, GameplayConfig::levelGroundY),
@@ -115,6 +118,7 @@ void Level2GameWidget::updateGame() {
   const float dt = GameplayConfig::gameTickSeconds;
   const std::vector<Character*> targets{player.get(), silbon.get(), tureco.get()};
 
+  player->setBlocking(blockHeld);
   QVector2D movement;
   if (moveLeft) movement.setX(movement.x() - 1.0f);
   if (moveRight) movement.setX(movement.x() + 1.0f);
@@ -125,7 +129,8 @@ void Level2GameWidget::updateGame() {
   const float previousTurecoX = tureco->getPosition().x();
   tureco->update(dt, *silbon, *player, targets);
   const float turecoDeltaX = tureco->getPosition().x() - previousTurecoX;
-  if (std::abs(turecoDeltaX) > 0.1f) {
+  turecoIsMoving = std::abs(turecoDeltaX) > 0.1f;
+  if (turecoIsMoving) {
     turecoFacing = turecoDeltaX < 0.0f ? -1.0f : 1.0f;
   }
   turecoAnimationTime += dt;
@@ -161,7 +166,7 @@ void Level2GameWidget::updatePlayerAnimation(float dt) {
   PlayerAnimation nextAnimation = PlayerAnimation::Idle;
   if (player->isRolling()) {
     nextAnimation = PlayerAnimation::Roll;
-  } else if (player->isParryBusy()) {
+  } else if (player->isBlocking() || player->isParryBusy()) {
     nextAnimation = PlayerAnimation::Parry;
   } else if (attackAnimationTimer > 0.0f) {
     nextAnimation = PlayerAnimation::Attack;
@@ -285,7 +290,8 @@ void Level2GameWidget::paintEvent(QPaintEvent*) {
     } else {
       const bool charging = tureco->isKicked();
       const int row = charging ? 1 : 0;
-      const int frame = charging
+      const bool walking = turecoIsMoving && !charging;
+      const int frame = (charging || walking)
           ? static_cast<int>(turecoAnimationTime / 0.09f) % 4
           : 0;
       const QRect source(frame * 512, row * 340, 512, 340);
@@ -316,9 +322,12 @@ void Level2GameWidget::paintEvent(QPaintEvent*) {
 
       switch (playerAnimation) {
         case PlayerAnimation::Idle:
+          row = 0;
+          column = 1;
+          break;
         case PlayerAnimation::Jump:
           row = 0;
-          column = 1;  // La hoja no incluye una secuencia propia de salto.
+          column = 1;
           break;
         case PlayerAnimation::Run:
           row = 7;
@@ -341,11 +350,23 @@ void Level2GameWidget::paintEvent(QPaintEvent*) {
       }
 
       const QRect source(column * cellWidth, row * cellHeight, cellWidth, cellHeight);
+      const qreal spriteHeight = body.height();
+      const qreal spriteWidth = spriteHeight * cellWidth / cellHeight;
+      const QRectF spriteRect(body.center().x() - spriteWidth * 0.5,
+                              body.bottom() - spriteHeight, spriteWidth, spriteHeight);
       if (player->getFacingVector().x() < 0.0f) {
         painter.translate(body.center().x() * 2.0, 0.0);
         painter.scale(-1.0, 1.0);
       }
-      painter.drawImage(body, playerSpriteSheet, source);
+      if (playerAnimation == PlayerAnimation::Jump && !jumpSprite.isNull()) {
+        const qreal jumpHeight = body.height();
+        const qreal jumpWidth = jumpHeight * jumpSprite.width() / jumpSprite.height();
+        const QRectF jumpRect(body.center().x() - jumpWidth * 0.5,
+                              body.bottom() - jumpHeight, jumpWidth, jumpHeight);
+        painter.drawImage(jumpRect, jumpSprite);
+      } else {
+        painter.drawImage(spriteRect, playerSpriteSheet, source);
+      }
     } else {
       painter.setPen(QPen(Qt::black, 2.0));
       painter.setBrush(QColor(198, 139, 78));
@@ -380,7 +401,7 @@ void Level2GameWidget::paintEvent(QPaintEvent*) {
   painter.setPen(Qt::white);
   painter.setFont(QFont(QStringLiteral("Arial"), 12, QFont::Bold));
   painter.drawText(QPointF(24.0, 30.0),
-                   QStringLiteral("NIVEL 2  |  A/D mover  Espacio saltar  L atacar  K parry  I roll  Esc menú"));
+                   QStringLiteral("NIVEL 2  |  A/D mover  Espacio saltar  L atacar  K bloquear (mantener)  I roll  Esc menú"));
 
   if (gameFinished) {
     painter.fillRect(rect(), QColor(10, 10, 13, 190));
@@ -424,7 +445,7 @@ void Level2GameWidget::keyPressEvent(QKeyEvent* event) {
       if (attackStarted) attackAnimationTimer = 0.24f;
       break;
     }
-    case Qt::Key_K: if (!event->isAutoRepeat()) player->executeParry(); break;
+    case Qt::Key_K: if (!event->isAutoRepeat()) blockHeld = true; break;
     case Qt::Key_I: if (!event->isAutoRepeat()) player->executeRoll(player->getFacingVector()); break;
     default: QWidget::keyPressEvent(event); return;
   }
@@ -434,6 +455,7 @@ void Level2GameWidget::keyPressEvent(QKeyEvent* event) {
 void Level2GameWidget::keyReleaseEvent(QKeyEvent* event) {
   if (event->key() == Qt::Key_A) moveLeft = false;
   else if (event->key() == Qt::Key_D) moveRight = false;
+  else if (event->key() == Qt::Key_K) blockHeld = false;
   else QWidget::keyReleaseEvent(event);
 }
 
